@@ -3,7 +3,7 @@ import numpy as np
 P_0 = 2116.22  # Standard SL Pressure [psf]
 T_0 = 288.15  # Standard SL Temperature  [Kelvin]
 RHO_0 = 0.002377  # Standard SL Density [Slugs/pi^3]
-dT_dh = -0.0019812  # Tropospheric Temperature Gradient [K/pi]
+dT_dh = 0.0019812  # Tropospheric Temperature Gradient - Absolute Value [K/pi]
 
 R = 96.0  # Gas constant [ft/K]
 g = 32.174  # Gravitational acceleration [ft/s^2]
@@ -11,6 +11,7 @@ g = 32.174  # Gravitational acceleration [ft/s^2]
 h_tr = 36089  # Altitude of the tropopause [ft]
 
 delta_tr = 0.22336  # Pressure ratio at the tropopause
+
 
 # delta -> pressure ratio
 # sigma -> density ratio
@@ -25,7 +26,7 @@ def temp_from_alt(h, ratio=False):
     :return: Temperature in [K]
     """
     if h < h_tr:
-        theta = (T_0 + dT_dh * h) / T_0
+        theta = (T_0 - dT_dh * h) / T_0
     elif h_tr <= h <= 65617:
         theta = 216.65 / T_0
     else:
@@ -83,7 +84,7 @@ def density_from_alt(h, ratio=False):
         return sigma
 
 
-def get_pressure_altitude(P, h):
+def get_pressure_altitude(P):
     '''
     Get altitude equivalent to given ambient pressure.
 
@@ -105,3 +106,43 @@ def get_pressure_altitude(P, h):
         raise Exception('Invalid altitude.')
 
     return hp
+
+
+def get_delta_ISA(hp, T):
+    '''
+    Return temperature deviation from standard temperature at given altitude.
+
+    :param hp: Pressure altitude [ft]
+    :param T: Measured Temperature in [K] or in [°C]
+    :return :
+    '''
+
+    T_ISA = temp_from_alt(hp)
+
+    return T - T_ISA
+
+def get_atmos_from_dISA(hp, dISA, ratio=True):
+    """
+    Get atmospheric properties given pressure altitude and
+    temperature deviation from standard (dISA)
+
+    :param hp: Pressure Altitude [ft]
+    :param dISA: Temperature deviation in [K] or in [°C]
+    :param ratio: If True returns properties expressed as ratios to SL values.
+
+    :return: Atmospheric properties
+    """
+
+    T_std = temp_from_alt(hp)
+    T_dISA = T_std + dISA
+
+    delta = pressure_from_alt(hp, True)
+    theta = T_dISA / T_0
+    sigma = delta / theta
+
+    if ratio:
+        return delta, sigma, theta
+    else:
+        return delta*P_0, sigma*RHO_0, theta*T_0
+
+
