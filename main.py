@@ -1,4 +1,4 @@
-from atmos import *
+from atmos2 import *
 # This is a sample Python script.
 
 # Press Shift+F10 to execute it or replace it with your code.
@@ -14,3 +14,14 @@ if __name__ == '__main__':
     print_hi('PyCharm')
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
+deltaISA = -50
+h = 0
+hp = 40000
+T_C = -50
+P = 0
+ratio = False
+atm = atm(deltaISA, h, hp, T_C, P, ratio)
+print(atm.T_K)
+print(atm.P)
+print(atm.rho)
+print(atm.deltaISA)

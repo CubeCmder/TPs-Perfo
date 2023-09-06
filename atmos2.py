@@ -1,28 +1,31 @@
 import numpy as np
+import string
 
 class atm:
-  def __init__(self, deltaISA, h, hp, T, P):
-    self.name = name
-    self.age = age
+    P_0 = 2116.22  # Standard SL Pressure [psf]
+    T_0 = 288.15  # Standard SL Temperature  [Kelvin]
+    RHO_0 = 0.002377  # Standard SL Density [Slugs/pi^3]
+    dT_dh = 0.0019812  # Tropospheric Temperature Gradient - Absolute Value [K/pi]
 
-    atm.P_0 = 2116.22  # Standard SL Pressure [psf]
-    atm.T_0 = 288.15  # Standard SL Temperature  [Kelvin]
-    atm.RHO_0 = 0.002377  # Standard SL Density [Slugs/pi^3]
-    atm.dT_dh = 0.0019812  # Tropospheric Temperature Gradient - Absolute Value [K/pi]
-    
-    atm.R = 96.0  # Gas constant [ft/K]
-    atm.g = 32.174  # Gravitational acceleration [ft/s^2]
-    
-    atm.h_tr = 36089  # Altitude of the tropopause [ft]
-    
-    atm.delta_tr = 0.22336  # Pressure ratio at the tropopause
+    R = 96.0  # Gas constant [ft/K]
+    g = 32.174  # Gravitational acceleration [ft/s^2]
 
+    h_tr = 36089  # Altitude of the tropopause [ft]
+
+    delta_tr = 0.22336  # Pressure ratio at the tropopause
+
+    def __init__(self, deltaISA, h, hp, T_C, P, ratio):
+        if type(T_C) == int:
+            self.T_K = T_C + 273.15
+            self.deltaISA = self.get_delta_ISA(hp, T_C)+273.15
+        else:
+            self.P, self.rho, self.T_K = self.get_atmos_from_dISA(hp, deltaISA, ratio)
+
+        # delta -> pressure ratio
+        # sigma -> density ratio
+        # theta -> temperature ratio
     
-    # delta -> pressure ratio
-    # sigma -> density ratio
-    # theta -> temperature ratio
-    
-    def temp_from_alt(h, ratio=False):
+    def temp_from_alt(self, h, ratio=False):
         """
         Get the atmospheric temperature at a given altitude.
     
@@ -30,20 +33,20 @@ class atm:
         :param ratio: if True returns temperature expressed as a ratio to SL temperature.
         :return: Temperature in [K]
         """
-        if h < atm.h_tr:
-            theta = (atm.T_0 - atm.dT_dh * h) / atm.T_0
-        elif atm.h_tr <= h <= 65617:
-            theta = 216.65 / atm.T_0
+        if h < self.h_tr:
+            theta = (self.T_0 - self.dT_dh * h) / self.T_0
+        elif self.h_tr <= h <= 65617:
+            theta = 216.65 / self.T_0
         else:
             raise Exception('Invalid altitude.')
     
         if not ratio:
-            return theta * atm.T_0
+            return theta * self.T_0
         else:
             return theta
     
     
-    def pressure_from_alt(h, ratio=False):
+    def pressure_from_alt(self, h, ratio=False):
         """
         Get the atmospheric pressure at a given altitude.
     
@@ -52,22 +55,22 @@ class atm:
         :return: Pressure in [psf]
         """
     
-        if h < atm.h_tr:
-            delta = (1 - atm.dT_dh / atm.T_0 * h) ** (1 / atm.dT_dh / R)
+        if h < self.h_tr:
+            delta = (1 - self.dT_dh / self.T_0 * h) ** (1 / self.dT_dh / self.R)
     
-        elif atm.h_tr <= h <= 65617:
-            delta = 0.22336 * np.exp(-(h - atm.h_tr) / (atm.R * temp_from_alt(atm.h_tr)))
+        elif self.h_tr <= h <= 65617:
+            delta = 0.22336 * np.exp(-(h - self.h_tr) / (self.R * self.temp_from_alt(self.h_tr)))
     
         else:
             raise Exception('Invalid altitude.')
     
         if not ratio:
-            return delta * atm.P_0
+            return delta * self.P_0
         else:
             return delta
     
     
-    def density_from_alt(h, ratio=False):
+    def density_from_alt(self, h, ratio=False):
         """
         Get the atmospheric density at a given altitude.
     
@@ -76,20 +79,20 @@ class atm:
         :return: Density in [slugs/ft^3]
         """
     
-        if h < atm.h_tr:
-            sigma = temp_from_alt(h, ratio=True) ** 4.2559
-        elif atm.h_tr <= h <= 65617:
-            sigma = 0.29707 * np.exp(-(h - atm.h_tr) / (atm.R * temp_from_alt(atm.h_tr)))
+        if h < self.h_tr:
+            sigma = self.temp_from_alt(h, ratio=True) ** 4.2559
+        elif self.h_tr <= h <= 65617:
+            sigma = 0.29707 * np.exp(-(h - self.h_tr) / (self.R * self.temp_from_alt(self.h_tr)))
         else:
             raise Exception('Invalid altitude.')
     
         if not ratio:
-            return sigma * atm.RHO_0
+            return sigma * self.RHO_0
         else:
             return sigma
     
     
-    def get_pressure_altitude(P):
+    def get_pressure_altitude(self, P):
         '''
         Get altitude equivalent to given ambient pressure.
     
@@ -99,13 +102,13 @@ class atm:
         :return hp: Equivalent pressure altitude [ft]
         '''
     
-        delta = P / atm.P_0
+        delta = P / self.P_0
     
-        if delta < atm.delta_tr:
+        if delta < self.delta_tr:
             hp = (1 - delta ** (1 / 5.2559)) / (6.87535 * 10 ** -6)
     
-        elif atm.delta_tr <= delta <= 0.0540041:
-            hp = atm.h_tr - 20806 * np.log(4.477 * delta)
+        elif self.delta_tr <= delta <= 0.0540041:
+            hp = self.h_tr - 20806 * np.log(4.477 * delta)
     
         else:
             raise Exception('Invalid altitude.')
@@ -113,7 +116,7 @@ class atm:
         return hp
     
     
-    def get_delta_ISA(hp, T):
+    def get_delta_ISA(self, hp, T):
         '''
         Return temperature deviation from standard temperature at given altitude.
     
@@ -122,11 +125,11 @@ class atm:
         :return :
         '''
     
-        T_ISA = temp_from_alt(hp)
+        T_ISA = self.temp_from_alt(hp)
     
         return T - T_ISA
     
-    def get_atmos_from_dISA(hp, dISA, ratio=True):
+    def get_atmos_from_dISA(self, hp, dISA, ratio=True):
         """
         Get atmospheric properties given pressure altitude and
         temperature deviation from standard (dISA)
@@ -138,16 +141,16 @@ class atm:
         :return: Atmospheric properties
         """
     
-        T_std = temp_from_alt(hp)
+        T_std = self.temp_from_alt(hp)
         T_dISA = T_std + dISA
     
-        delta = pressure_from_alt(hp, True)
-        theta = T_dISA / atm.T_0
+        delta = self.pressure_from_alt(hp, True)
+        theta = T_dISA / self.T_0
         sigma = delta / theta
     
         if ratio:
             return delta, sigma, theta
         else:
-            return delta*atm.P_0, sigma*atm.RHO_0, theta*atm.T_0
+            return delta*self.P_0, sigma*self.RHO_0, theta*self.T_0
     
     
