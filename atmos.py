@@ -100,7 +100,7 @@ def get_pressure_altitude(P):
     if delta < delta_tr:
         hp = (1 - delta ** (1 / 5.2559)) / (6.87535 * 10 ** -6)
 
-    elif delta_tr <= delta <= 0.0540041:
+    elif delta_tr <= delta:
         hp = h_tr - 20806 * np.log(4.477 * delta)
 
     else:

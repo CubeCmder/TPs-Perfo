@@ -4,6 +4,10 @@ from units import *
 
 # Speed of sound at sea level
 a0 = 661.48  # knots
+P_0 = 2116.22  # Standard SL Pressure [psf]
+T_0 = 288.15  # Standard SL Temperature  [Kelvin]
+RHO_0 = 0.002377  # Standard SL Density [Slugs/pi^3]
+Gamma = 0.14
 
 
 def get_impact_pressure(p, mach):
@@ -15,8 +19,8 @@ def get_impact_pressure(p, mach):
 
     :return: compressible impact pressure (q_c) in [psf]
     """
-
-    return p * ((1 + ((gamma - 1) / 2) * mach ** 2) ** (gamma / (gamma - 1)) - 1)
+    qc = p * (((1 + mach**2/5)**1/0.2857)-1)
+    return P_0 * ((1 + ((gamma - 1) / 2) * mach ** 2) ** (gamma / (gamma - 1)) - 1)
 
 
 def get_total_pressure(p, mach):
@@ -107,7 +111,7 @@ def get_mach(v=None, a=None, temp=None, qc=None, p=None):
     elif (v is not None and temp is not None and a is None) and qc is None:
         return v / get_SOS(temp=temp)
     elif qc is not None and p is not None:
-        return (5 * ((qc / p + 1) * 0.2857 - 1)) ** 0.5
+        return (5 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
     else:
         raise Exception('Ambiguous or erroneous function arguments.')
 
@@ -125,11 +129,11 @@ def get_calibrated_airspeed(p, mach, knots=True):
     qc = get_impact_pressure(p, mach)
 
     if knots:
-        return a0 * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5
+        return a0 * (5 * ((qc / P_0 + 1) ** 0.2857 - 1)) ** 0.5
     else:
-        return knots2fps(a0 * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5)
+        return knots2fps(a0 * (5 * ((qc / P_0 + 1) ** 0.2857 - 1)) ** 0.5)
 
-def get_mach_from_calibrated_airspeed(p, V_c):
+def get_mach_from_calibrated_airspeed(p, Vc):
     """
     Get Mach (M) from calibrated airspeed (V_c).
 
@@ -138,9 +142,10 @@ def get_mach_from_calibrated_airspeed(p, V_c):
 
     :return: Mach
     """
-    qc = (((V_c/a0)/5+1)**(1/0.2857)-1)*p
+    qc = P_0 * ((1 + 0.2 * (Vc / a0) ** 2) ** 3.5 - 1)
+    mach = ( (2 / (gamma - 1)) * ( (1 + qc/p) ** ( (gamma - 1) / gamma) -1))**0.5
 
-    return (5*((qc/p+1)**0.2857-1))**2
+    return mach
 
 
 def get_equivalent_airspeed(p, mach, knots=True):
@@ -154,29 +159,25 @@ def get_equivalent_airspeed(p, mach, knots=True):
     """
 
     qc = get_impact_pressure(p, mach)
-    if knots:
-        return (7 * p / P_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
-    else:
-        return knots2fps((7 * p / P_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5)
 
-def get_mach_from_equivalent_airspeed(p, V_e):
+    if knots:
+        return (7 * p / RHO_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
+    else:
+        return knots2fps((7 * p / RHO_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5)
+
+def get_mach_from_equivalent_airspeed(p, Ve):
     """
-    Get Mach (M) from equivalent airspeed (V_e).
+    Get Mach (M) from equivalent airspeed (Ve).
 
     :param p: Local static pressure in [psf] - required
     :param Ve: Equivalent airspeed in [knots] - required
 
     :return: Mach
     """
-    h = get_pressure_altitude(p)
-    sigma = density_from_alt(h, True)
-    V = V_e/sigma**(0.5)
-    temp = temp_from_alt(h)
-    a = get_SOS(temp)
-    qc = get_dynamic_pressure(p)
-    Mach = get_mach(V, a, temp, qc, p)
+    qc = ((( Ve**2 / 7 * RHO_0 / p ) + 1)**(1/0.2857) - 1) * p
+    mach = ( (2 / (gamma - 1)) * ( (1 + qc/p) ** ( (gamma - 1) / gamma) -1))**0.5
 
-    return Mach
+    return mach
 
 def get_true_airspeed(p, mach, a=None, temp=None, knots=True):
     """
@@ -200,9 +201,9 @@ def get_true_airspeed(p, mach, a=None, temp=None, knots=True):
         raise Exception('Ambiguous or erroneous function arguments.')
 
     if knots:
-        return a * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5
+        return a * (5 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
     else:
-        return knots2fps(a * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5)
+        return knots2fps(a * (5 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5)
 
 def get_viscosity(p):
     """
@@ -233,7 +234,7 @@ def get_reynolds(p,V,L=8.286):
 
     return rho*V*L/mu
 
-def get_loft_coefficient(p,W,S=520,N_z = 1):
+def get_lift_coefficient(p,V,W,S=520,N_z = 1):
     """
     Get the number of Reynolds (RN) at the given conditions.
 
@@ -245,8 +246,8 @@ def get_loft_coefficient(p,W,S=520,N_z = 1):
     :return: dynamic viscosity (lb*sec/pi2)
     """
     L = N_z*W
-    q = get_dynamic_pressure(p)
+    q = get_dynamic_pressure(p,V)
 
-    return W/(q*S)
+    return L/(q*S)
 
 
