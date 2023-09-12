@@ -9,7 +9,7 @@ def knots2fps(v, reverse=False):
     :return: Converted value.
     """
 
-    if reverse is True:
+    if reverse is False:
         return v*1.68781
     else:
         return v/1.68781

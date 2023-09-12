@@ -19,8 +19,8 @@ def get_impact_pressure(p, mach):
 
     :return: compressible impact pressure (q_c) in [psf]
     """
-    qc = p * (((1 + mach**2/5)**1/0.2857)-1)
-    return P_0 * ((1 + ((gamma - 1) / 2) * mach ** 2) ** (gamma / (gamma - 1)) - 1)
+    #qc = p * (((1 + mach**2/5)**(1/0.2857))-1)
+    return p * ((1 + ((gamma - 1) / 2) * mach ** 2) ** (gamma / (gamma - 1)) - 1)
 
 
 def get_total_pressure(p, mach):
@@ -161,9 +161,9 @@ def get_equivalent_airspeed(p, mach, knots=True):
     qc = get_impact_pressure(p, mach)
 
     if knots:
-        return (7 * p / RHO_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
+        return knots2fps((7 * p / RHO_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5, True)
     else:
-        return knots2fps((7 * p / RHO_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5)
+        return (7 * p / RHO_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
 
 def get_mach_from_equivalent_airspeed(p, Ve):
     """

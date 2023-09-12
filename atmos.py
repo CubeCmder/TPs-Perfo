@@ -48,7 +48,7 @@ def pressure_from_alt(h, ratio=False):
     :return: Pressure in [psf]
     """
 
-    if h < h_tr:
+    if -2000 <= h < h_tr:
         delta = (1 - dT_dh / T_0 * h) ** (1 / dT_dh / R)
 
     elif h_tr <= h <= 65617:
@@ -97,10 +97,10 @@ def get_pressure_altitude(P):
 
     delta = P / P_0
 
-    if delta < delta_tr:
+    if delta > delta_tr:
         hp = (1 - delta ** (1 / 5.2559)) / (6.87535 * 10 ** -6)
 
-    elif delta_tr <= delta:
+    elif delta_tr >= delta >= 0.0540041:
         hp = h_tr - 20806 * np.log(4.477 * delta)
 
     else:
