@@ -226,9 +226,10 @@ def get_reynolds(p,V,L=8.286):
     :param V: True air speed
     :param L: MAC (mean aerodynamic chord)
 
-    :return: dynamic viscosity (lb*sec/pi2)
+    :return: Reynold Number
     """
     mu = get_viscosity(p)
+    V = knots2fps(V)
     h = get_pressure_altitude(p)
     rho = density_from_alt(h)
 
@@ -239,13 +240,15 @@ def get_lift_coefficient(p,V,W,S=520,N_z = 1):
     Get the number of Reynolds (RN) at the given conditions.
 
     :param p: Local static pressure in [psf] - required
+    :param V: True airspeed [knots]
     :param S: Wing surface
     :param W: Aircraft weight
     :param N_z: Coefficient
 
-    :return: dynamic viscosity (lb*sec/pi2)
+    :return : Lift coefficient
     """
     L = N_z*W
+    V = knots2fps(V)
     q = get_dynamic_pressure(p,V)
 
     return L/(q*S)
