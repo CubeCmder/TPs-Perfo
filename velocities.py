@@ -1,5 +1,6 @@
 import numpy as np
 from atmos import *
+from units import *
 
 # Speed of sound at sea level
 a0 = 661.48  # knots
@@ -67,7 +68,7 @@ def get_total_temperature(T, mach, K=1):
     return T*(1+0.2*K*mach**2)
 
 
-def get_SOS(temp=None, theta=None):
+def get_SOS(temp=None, theta=None, knots=True):
     """
     Get the speed of sound at the given temperature or temperature ratio. Only one parameter required.
 
@@ -76,9 +77,15 @@ def get_SOS(temp=None, theta=None):
     :return: SOS in [knots]
     """
     if theta is None and temp is not None:
-        return a0 * (temp / T_0) ** 0.5
+        if knots:
+            return a0 * (temp / T_0) ** 0.5
+        else:
+            return knots2fps(a0 * (temp / T_0) ** 0.5)
     elif theta is not None and temp is None:
-        return a0 * theta ** 0.5
+        if knots:
+            return a0 * theta ** 0.5
+        else:
+            return knots2fps(a0 * theta ** 0.5)
     else:
         raise Exception('Ambiguous or erroneous function arguments.')
 
@@ -105,7 +112,7 @@ def get_mach(v=None, a=None, temp=None, qc=None, p=None):
         raise Exception('Ambiguous or erroneous function arguments.')
 
 
-def get_calibrated_airspeed(p, mach):
+def get_calibrated_airspeed(p, mach, knots=True):
     """
     Get the calibrated airspeed (CAS or V_c) of an aircraft at the given conditions.
 
@@ -117,20 +124,26 @@ def get_calibrated_airspeed(p, mach):
 
     qc = get_impact_pressure(p, mach)
 
-    return a0 * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5
+    if knots:
+        return a0 * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5
+    else:
+        return knots2fps(a0 * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5)
 
-def get_mach_from_calibrated_airspeed(p, V_e):
-    h = get_pressure_altitude(p)
-    sigma = density_from_alt(h, True)
-    V = V_e/sigma**(0.5)
-    temp = temp_from_alt(h)
-    a = get_SOS(temp)
-    qc = get_dynamic_pressure(p)
-    Mach = get_mach(V, a, temp, qc, p)
+def get_mach_from_calibrated_airspeed(p, V_c):
+    """
+    Get Mach (M) from calibrated airspeed (V_c).
 
-    return Mach
+    :param p: Local static pressure in [psf] - required
+    :param Vc: Equivalent airspeed in [knots] - required
 
-def get_equivalent_airspeed(p, mach):
+    :return: Mach
+    """
+    qc = (((V_c/a0)/5+1)**(1/0.2857)-1)*p
+
+    return (5*((qc/p+1)**0.2857-1))**2
+
+
+def get_equivalent_airspeed(p, mach, knots=True):
     """
     Get equivalent airspeed (V_e) of an aircraft at the given conditions.
 
@@ -141,11 +154,31 @@ def get_equivalent_airspeed(p, mach):
     """
 
     qc = get_impact_pressure(p, mach)
+    if knots:
+        return (7 * p / P_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
+    else:
+        return knots2fps((7 * p / P_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5)
 
-    return (7 * p / P_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
+def get_mach_from_equivalent_airspeed(p, V_e):
+    """
+    Get Mach (M) from equivalent airspeed (V_e).
 
+    :param p: Local static pressure in [psf] - required
+    :param Ve: Equivalent airspeed in [knots] - required
 
-def get_true_airspeed(p, mach, a=None, temp=None):
+    :return: Mach
+    """
+    h = get_pressure_altitude(p)
+    sigma = density_from_alt(h, True)
+    V = V_e/sigma**(0.5)
+    temp = temp_from_alt(h)
+    a = get_SOS(temp)
+    qc = get_dynamic_pressure(p)
+    Mach = get_mach(V, a, temp, qc, p)
+
+    return Mach
+
+def get_true_airspeed(p, mach, a=None, temp=None, knots=True):
     """
     Get the true airspeed (TAS or V) of an aircraft at the given conditions.
 
@@ -166,4 +199,54 @@ def get_true_airspeed(p, mach, a=None, temp=None):
     else:
         raise Exception('Ambiguous or erroneous function arguments.')
 
-    return a * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5
+    if knots:
+        return a * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5
+    else:
+        return knots2fps(a * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5)
+
+def get_viscosity(p):
+    """
+    Get the dynamic viscosity (mu) of air at the given conditions.
+
+    :param p: Local static pressure in [psf] - required
+
+    :return: dynamic viscosity (lb*sec/pi2)
+    """
+    h = get_pressure_altitude(p)
+    t = temp_from_alt(h)
+
+    return 0.3125E-7*t**1.5/(t+120)
+
+def get_reynolds(p,V,L=8.286):
+    """
+    Get the number of Reynolds (RN) at the given conditions.
+
+    :param p: Local static pressure in [psf] - required
+    :param V: True air speed
+    :param L: MAC (mean aerodynamic chord)
+
+    :return: dynamic viscosity (lb*sec/pi2)
+    """
+    mu = get_viscosity(p)
+    h = get_pressure_altitude(p)
+    rho = density_from_alt(h)
+
+    return rho*V*L/mu
+
+def get_loft_coefficient(p,W,S=520,N_z = 1):
+    """
+    Get the number of Reynolds (RN) at the given conditions.
+
+    :param p: Local static pressure in [psf] - required
+    :param S: Wing surface
+    :param W: Aircraft weight
+    :param N_z: Coefficient
+
+    :return: dynamic viscosity (lb*sec/pi2)
+    """
+    L = N_z*W
+    q = get_dynamic_pressure(p)
+
+    return W/(q*S)
+
+
