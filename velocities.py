@@ -119,6 +119,16 @@ def get_calibrated_airspeed(p, mach):
 
     return a0 * (5 * ((qc / P_0 + 1) * 0.2857 - 1)) ** 0.5
 
+def get_mach_from_calibrated_airspeed(p, V_e):
+    h = get_pressure_altitude(p)
+    sigma = density_from_alt(h, True)
+    V = V_e/sigma**(0.5)
+    temp = temp_from_alt(h)
+    a = get_SOS(temp)
+    qc = get_dynamic_pressure(p)
+    Mach = get_mach(V, a, temp, qc, p)
+
+    return Mach
 
 def get_equivalent_airspeed(p, mach):
     """
