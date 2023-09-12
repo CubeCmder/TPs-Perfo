@@ -1,4 +1,5 @@
-from atmos2 import *
+from atmos import *
+from velocities import *
 # This is a sample Python script.
 
 # Press Shift+F10 to execute it or replace it with your code.
@@ -13,15 +14,43 @@ def print_hi(name):
 if __name__ == '__main__':
     print_hi('PyCharm')
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
-deltaISA = 0
-h = 0
+hp = -2000
+T = 35
+W = 40000
+p = pressure_from_alt(hp)
+Vc = 150
+M = get_mach_from_calibrated_airspeed(p, Vc)
+V = get_true_airspeed(p,M)
+Ve = get_equivalent_airspeed(p,M)
+Re = get_reynolds(p,V)
+mu = get_viscosity(p)
+
+print('Vc= 150 kts')
+print('mach : ' + str(M))
+print('true : ' + str(V))
+print('e : ' + str(Ve))
+print('Re : ' + str(Re))
+print('mu : ' + str(mu))
+
 hp = 20000
-T_C = -40
-P = 0
-ratio = False
-atm = atm(deltaISA, h, hp, T_C, P, ratio)
-print(atm.T_K)
-print(atm.P)
-print(atm.rho)
-print(atm.deltaISA)
+T = -40
+W = 40000
+p = pressure_from_alt(hp)
+Ve = 250
+M = get_mach_from_equivalent_airspeed(p,Ve)
+V = get_true_airspeed(p,M)
+Vc = get_calibrated_airspeed(p,M)
+Re = get_reynolds(p,V)
+
+print('Ve= 250 kts')
+print('mach : ' + str(M))
+print('true : ' + str(V))
+print('c : ' + str(Vc))
+print('Re : ' + str(Re))
+print('mu : ' + str(mu))
+
+
+
+
+
+
