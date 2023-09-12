@@ -12,6 +12,7 @@ h_tr = 36089  # Altitude of the tropopause [ft]
 
 delta_tr = 0.22336  # Pressure ratio at the tropopause
 
+gamma = 1.4  # Atmospheric heat capacity ratio
 
 # delta -> pressure ratio
 # sigma -> density ratio
