@@ -18,6 +18,7 @@ class atm:
         if type(T_C) == int:
             self.T_K = T_C + 273.15
             self.deltaISA = self.get_delta_ISA(hp, T_C)+273.15
+            self.P, self.rho, self.T_K = self.get_atmos_from_dISA(hp, self.deltaISA, ratio)
         else:
             self.P, self.rho, self.T_K = self.get_atmos_from_dISA(hp, deltaISA, ratio)
 

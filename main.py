@@ -14,10 +14,10 @@ if __name__ == '__main__':
     print_hi('PyCharm')
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
-deltaISA = -50
+deltaISA = 0
 h = 0
-hp = 40000
-T_C = -50
+hp = 20000
+T_C = -40
 P = 0
 ratio = False
 atm = atm(deltaISA, h, hp, T_C, P, ratio)
