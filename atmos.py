@@ -48,7 +48,7 @@ def pressure_from_alt(h, ratio=False):
     :return: Pressure in [psf]
     """
 
-    if -2000 <= h < h_tr:
+    if -2001 <= h < h_tr:
         delta = (1 - dT_dh / T_0 * h) ** (1 / dT_dh / R)
 
     elif h_tr <= h <= 65617:

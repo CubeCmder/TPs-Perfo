@@ -14,23 +14,23 @@ def print_hi(name):
 if __name__ == '__main__':
 
     hp = -2000
-    T = 35
+    T = 35+273.15
     W = 40000
 
-    dISA = get_delta_ISA(hp,T+273.15)
-    #p, rho, T = get_atmos_from_dISA(hp, dISA, False)
-    T = 35+273.15
     p = pressure_from_alt(hp)
+    dISA = get_delta_ISA(hp,T)
     print(dISA)
+    p,rho,t = get_atmos_from_dISA(hp, dISA, False)
     print(p)
+    print(rho)
     print(T)
     Vc = 150
     mach = get_mach_from_calibrated_airspeed(p, Vc)
     V = get_true_airspeed(p, mach, temp=T)
     Ve = get_equivalent_airspeed(p, mach)
-    Re = get_reynolds(p, V)
-    mu = get_viscosity(p)
-    Cl = get_lift_coefficient(p, V, W)
+    Re = get_reynolds(p, V, T)
+    mu = get_viscosity(p,T)
+    Cl = get_lift_coefficient(p, V, W, T)
     a = get_SOS(T, knots=True)
 
     print(f'Vc = 150 kts')

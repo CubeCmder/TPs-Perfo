@@ -37,11 +37,12 @@ def get_total_pressure(p, mach):
     return qc + p
 
 
-def get_dynamic_pressure(p, v=None, mach=None):
+def get_dynamic_pressure(p, T=None, v=None, mach=None):
     """
     Get total pressure at given conditions.
 
     :param p: Local static pressure in [psf] - required
+    :param T: Temperature [K]
     :param v: Aircraft true airspeed (TAS) - required if 'mach' missing
     :param mach: Aircraft mach number - required if 'v' missing
 
@@ -51,11 +52,15 @@ def get_dynamic_pressure(p, v=None, mach=None):
     if v is None and mach is not None:
         return 1481.3 * p / P_0 * mach ** 2
 
-    elif v is not None and mach is None:
+    elif v is not None and mach is None and T is None:
         hp = get_pressure_altitude(p)
         rho = density_from_alt(hp)
         return 1 / 2 * rho * v ** 2
-
+    elif v is not None and T is not None and mach is None:
+        hp = get_pressure_altitude(p)
+        dISA = get_delta_ISA(hp,T)
+        p, rho, t = get_atmos_from_dISA(hp,dISA, False)
+        return 1 / 2 * rho * v ** 2
     else:
         raise Exception('Ambiguous or erroneous function arguments.')
 
@@ -205,7 +210,7 @@ def get_true_airspeed(p, mach, a=None, temp=None, knots=True):
     else:
         return knots2fps(a * (5 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5)
 
-def get_viscosity(p):
+def get_viscosity(p,T):
     """
     Get the dynamic viscosity (mu) of air at the given conditions.
 
@@ -213,12 +218,10 @@ def get_viscosity(p):
 
     :return: dynamic viscosity (lb*sec/pi2)
     """
-    h = get_pressure_altitude(p)
-    t = temp_from_alt(h)
 
-    return 0.3125E-7*t**1.5/(t+120)
+    return 0.3125E-7*T**1.5/(T+120)
 
-def get_reynolds(p,V,L=8.286):
+def get_reynolds(p,V,T,L=8.286):
     """
     Get the number of Reynolds (RN) at the given conditions.
 
@@ -228,14 +231,15 @@ def get_reynolds(p,V,L=8.286):
 
     :return: Reynold Number
     """
-    mu = get_viscosity(p)
+    mu = get_viscosity(p,T)
     V = knots2fps(V)
     h = get_pressure_altitude(p)
-    rho = density_from_alt(h)
+    dISA = get_delta_ISA(h, T)
+    p, rho, T = get_atmos_from_dISA(h, dISA, False)
 
     return rho*V*L/mu
 
-def get_lift_coefficient(p,V,W,S=520,N_z = 1):
+def get_lift_coefficient(p,V,W,T,S=520,N_z = 1):
     """
     Get the number of Reynolds (RN) at the given conditions.
 
@@ -249,7 +253,7 @@ def get_lift_coefficient(p,V,W,S=520,N_z = 1):
     """
     L = N_z*W
     V = knots2fps(V)
-    q = get_dynamic_pressure(p,V)
+    q = get_dynamic_pressure(p,T,V)
 
     return L/(q*S)
 
