@@ -47,44 +47,73 @@ if __name__ == '__main__':
 
 
     hp = 20000
-    T = -40
+    T = -40+273.15
     W = 40000
     dISA = get_delta_ISA(hp,T)
     p,rho,T = get_atmos_from_dISA(hp,dISA,False)
     Ve = 250
-    mach = get_mach_from_equivalent_airspeed(p,Ve)
-    V = get_true_airspeed(p,mach)
+    a = get_SOS(temp=T)
+    mach = get_mach_from_equivalent_airspeed(p,Ve,rho, a)
+    V = get_true_airspeed(p,mach,a)
     Vc = get_calibrated_airspeed(p,mach)
-    Re = get_reynolds(p,V)
-    Cl = get_lift_coefficient(p,V,W)
-
-    print('Ve= 250 kts')
-    print('mach : ' + str(mach))
-    print('true : ' + str(V))
-    print('c : ' + str(Vc))
-    print('Re : ' + str(Re))
-    print('mu : ' + str(mu))
-    print('Cl : ' + str(Cl))
+    Re = get_reynolds(p,V,T)
+    Cl = get_lift_coefficient(p,V,W,T)
+    mu = get_viscosity(p,T)
+    print('\n\nEquivalent')
+    print(f'Ve : {Ve:0.2f} kts')
+    print(f'Vc : {Vc:0.2f} kts')
+    print(f'mach : {mach:0.5f}')
+    print(f'a : {a:0.2f} kts')
+    print(f'TAS : {V:0.2f} kts')
+    print(f'Re : {Re:0.0f}')
+    print(f'mu : {mu:0.9f}')
+    print(f'Cl : {Cl:0.2f}')
 
     hp = 36089
-    T = -60
+    T = -60+273.15
     W = 40000
     dISA = get_delta_ISA(hp,T)
     p,rho,T = get_atmos_from_dISA(hp,dISA,False)
     V = 450
-    mach = get_mach(V)
-    Ve = get_equivalent_airspeed(p,mach)
+    a = get_SOS(temp=T)
+    mach = get_mach(V,a)
+    Ve = get_equivalent_airspeed(p,mach,a)
     Vc = get_calibrated_airspeed(p,mach)
-    Re = get_reynolds(p,V)
-    Cl = get_lift_coefficient(p,V,W)
+    Re = get_reynolds(p,V,T)
+    Cl = get_lift_coefficient(p,V,W,T)
+    mu = get_viscosity(p,T)
+    print('\n\nTrue')
+    print(f'TAS : {V:0.2f} kts')
+    print(f'Ve : {Ve:0.2f} kts')
+    print(f'Vc : {Vc:0.2f} kts')
+    print(f'mach : {mach:0.5f}')
+    print(f'a : {a:0.2f} kts')
+    print(f'Re : {Re:0.0f}')
+    print(f'mu : {mu:0.9f}')
+    print(f'Cl : {Cl:0.2f}')
 
-    print('Ve= 250 kts')
-    print('mach : ' + str(mach))
-    print('true : ' + str(Ve))
-    print('c : ' + str(Vc))
-    print('Re : ' + str(Re))
-    print('mu : ' + str(mu))
-    print('Cl : ' + str(Cl))
+    hp = 40000
+    T = -50+273.15
+    W = 40000
+    dISA = get_delta_ISA(hp,T)
+    p,rho,T = get_atmos_from_dISA(hp,dISA,False)
+    mach = 0.74
+    a = get_SOS(temp=T)
+    V = get_true_airspeed(p,mach,a)
+    Ve = get_equivalent_airspeed(p,mach,a)
+    Vc = get_calibrated_airspeed(p,mach)
+    Re = get_reynolds(p,V,T)
+    Cl = get_lift_coefficient(p,V,W,T)
+    mu = get_viscosity(p,T)
+    print('\n\nTrue')
+    print(f'TAS : {V:0.2f} kts')
+    print(f'Ve : {Ve:0.2f} kts')
+    print(f'Vc : {Vc:0.2f} kts')
+    print(f'mach : {mach:0.5f}')
+    print(f'a : {a:0.2f} kts')
+    print(f'Re : {Re:0.0f}')
+    print(f'mu : {mu:0.9f}')
+    print(f'Cl : {Cl:0.2f}')
 
 
 

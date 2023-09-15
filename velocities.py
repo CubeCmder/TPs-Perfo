@@ -170,7 +170,7 @@ def get_equivalent_airspeed(p, mach, knots=True):
     else:
         return (7 * p / RHO_0 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
 
-def get_mach_from_equivalent_airspeed(p, Ve):
+def get_mach_from_equivalent_airspeed(p, Ve, rho, a):
     """
     Get Mach (M) from equivalent airspeed (Ve).
 
@@ -179,8 +179,9 @@ def get_mach_from_equivalent_airspeed(p, Ve):
 
     :return: Mach
     """
-    qc = ((( Ve**2 / 7 * RHO_0 / p ) + 1)**(1/0.2857) - 1) * p
-    mach = ( (2 / (gamma - 1)) * ( (1 + qc/p) ** ( (gamma - 1) / gamma) -1))**0.5
+    sigma = rho/RHO_0
+    TAS = Ve/(sigma**0.5)
+    mach = TAS/a
 
     return mach
 
