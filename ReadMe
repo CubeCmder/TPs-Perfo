@@ -1,0 +1,10 @@
+AER8375 Analyse et performance des avions
+
+How to use:
+For TP1C, run program TP1C. This program imports and utilise atmos.py and velocities.py.
+
+atmos.py contains function that allows us to model the atmosphere and therefore obtain different parameters from
+a set of input that depends on the users need.
+
+velocities.py contains function that allows us to convert and calculate the speeds of the aircraft. Once again, inputs
+are based on users need.

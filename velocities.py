@@ -152,6 +152,11 @@ def get_mach_from_calibrated_airspeed(p, Vc):
 
     return mach
 
+def get_pressure_from_mach_and_CAS(mach,Vc):
+     p  = (P_0 * ((1 + 0.2 * (Vc / a0) ** 2) ** 3.5 - 1))/(((mach**2)/(2 / (gamma - 1))+1)**(1/((gamma - 1) / gamma))-1)
+     #p = (1 + (P_0 * (1 + 0.2 * (Vc / a0) ** 2) ** 3.5 - 1)) / (((mach**2)/(2 / (gamma - 1))+1)**(1/((gamma - 1) / gamma)))
+
+     return p
 
 def get_equivalent_airspeed(p, mach, knots=True):
     """
@@ -210,6 +215,7 @@ def get_true_airspeed(p, mach, a=None, temp=None, knots=True):
         return a * (5 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5
     else:
         return knots2fps(a * (5 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5)
+
 
 def get_viscosity(p,T):
     """
