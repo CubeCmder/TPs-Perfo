@@ -78,13 +78,13 @@ print(f'Pression : {p:0.4f} psf')
 print(f"Faux\n La valeur E-18 montre que l'operation est en fait impossible.")
 
 dISA = [-30,0,15]
-h = range(0, 40000,5000)
+h = range(0, 40000,1000)
 mach = np.zeros([len(h),len(dISA)])
 
 for i in range(len(h)):
     for j in range(len(dISA)):
-        p,rho,t = get_atmos_from_dISA(h[i],dISA[j])
-        mach[i,j] = get_mach_from_calibrated_airspeed(p,Vc)
+        p,rho,t = get_atmos_from_dISA(hp=h[i],dISA=dISA[j])
+        mach[i,j] = get_mach_from_calibrated_airspeed(p=p,Vc=Vc)
 
 plt.plot(h,mach[:,0],"bo",h,mach[:,1],"k",h,mach[:,2],"b")
 plt.title("Mach number in function of altitude for different delta ISA ")
