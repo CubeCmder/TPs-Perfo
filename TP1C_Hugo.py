@@ -11,7 +11,9 @@ print("Calculer la pression d'impact. \n\n")
 Vc = 240
 h = 3400
 p = pressure_from_alt(h)
+print(p)
 mach = get_mach_from_calibrated_airspeed(p, Vc)
+print(mach)
 qc = get_impact_pressure(p, mach)
 print(f'Données:')
 print(f'Vc : {Vc:0.2f} kts')
