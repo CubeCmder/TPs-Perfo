@@ -27,17 +27,17 @@ print("Est-il possible que TAS == CAS? Si oui, sous quelle(s) conditions(s)? \n"
 Vc = 270
 h = 3000
 
-dISA = range(-55,55)
+dISA = range(-30,15)
 V = np.zeros(len(dISA))
 
 test = False
-
+idx=-1
 for i in range(len(dISA)):
-    p,rho,t = get_atmos_from_dISA(hp=h,dISA=dISA[i])
-    mach = get_mach_from_calibrated_airspeed(p,Vc)
-    V[i] = get_true_airspeed(p,mach,temp=t)
+    p, rho, t = get_atmos_from_dISA(hp=h, dISA=dISA[i])
+    mach = get_mach_from_calibrated_airspeed(p, Vc)
+    V[i] = get_true_airspeed(p, mach, temp=t)
 
-    if V[i] == Vc:
+    if abs((Vc-V[i])/V[i]) < 0.001:
         print(f'Données:')
         print(f'Vc : {Vc:0.2f} kts')
         print(f'Altitude : {h:0.2f} ft')
@@ -45,23 +45,32 @@ for i in range(len(dISA)):
         print(f'Recherché:')
         print(f'Température : {t:0.4f} k')
         print(f'Delta ISA : {dISA[i]:0.4f} k')
+
+        idx=i
         test = True
 
+TAS = np.array(V)
+idx = np.argmin(np.abs((Vc-TAS)))
+print(TAS[idx])
+print(list(dISA)[idx])
 
 if test:
     print(f'Les conditions ci-dessus montre les conditions pour Vc=V')
 else:
     print(f'FAUX\nEn variant le delta ISA (la seul variable non fixé), acunne conditions à été trouvé pour que CAS == TAS')
 
-plt.plot(dISA,V)
+plt.plot(list(dISA),V)
 plt.title("True air speed en fonction de delta ISA ")
 plt.xlabel('Delta ISA')
+if idx!=-1:
+    plt.axhline(y=Vc, color='red', linestyle='--', label='CAS')
+    plt.axvline(x=list(dISA)[idx], color='red', linestyle='--', label='dISA')
 plt.ylabel('True air speed (knts)')
 plt.show()
 print(f'Le graphique montre que 270 knts CAS serait atteint a un valure irrealiste de delta ISA\n')
 
 print('_________ Question 5 _________')
-print('Un avion vola à 275 kts CAS.')
+print('Un avion vole à 275 kts CAS.')
 print("Est-il possible que mach == 0.76? Si oui, sous quelle(s) conditions(s)? \n")
 
 Vc = 275

@@ -122,7 +122,7 @@ def get_delta_ISA(hp, T):
 
     return T - T_ISA
 
-def get_atmos_from_dISA(hp, dISA, ratio=True):
+def get_atmos_from_dISA(hp, dISA, ratio=False):
     """
     Get atmospheric properties given pressure altitude and
     temperature deviation from standard (dISA)
@@ -131,7 +131,7 @@ def get_atmos_from_dISA(hp, dISA, ratio=True):
     :param dISA: Temperature deviation in [K] or in [°C]
     :param ratio: If True returns properties expressed as ratios to SL values.
 
-    :return: Atmospheric properties
+    :return: Atmospheric properties (Press., Rho, Temp.)
     """
 
     T_std = temp_from_alt(hp)
