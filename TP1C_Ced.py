@@ -4,21 +4,6 @@ import numpy as np
 from atmos import *
 from velocities import *
 
-print('_________ Question 2 _________')
-print('Un avion vola à 240 kts CAS a une altitude pression de 3400 ft.')
-print("Calculer la pression d'impact. \n")
-
-Vc = 240
-h = 3400
-p = pressure_from_alt(h)
-mach = get_mach_from_calibrated_airspeed(p, Vc)
-qc = get_impact_pressure(p, mach)
-print(f'Données:')
-print(f'Vc : {Vc:0.2f} kts')
-print(f'Altitude : {h:0.2f} ft')
-
-print(f'\nRecherché:')
-print(f'qc : {qc:0.4f} psf')
 
 print('\n_________ Question 4 _________')
 print('Un avion vole à 270 kts CAS à une altitude pression de 3000 ft.')
@@ -55,7 +40,7 @@ if abs((CAS - TAS_i) / TAS_i) < 0.01:
 else:
     print("Il n'y a pas de valeur de dISA où la valeur de TAS est égal à la valeur de CAS.")
 
-plt.plot(list(range(dISA_min, dISA_max)), TAS, color='orange')
+'''plt.plot(list(range(dISA_min, dISA_max)), TAS, color='orange')
 #plt.title("TAS en fonction de delta ISA")
 plt.xlabel('Delta ISA (°C)')
 plt.grid()
@@ -63,7 +48,7 @@ if idx != -1:
     plt.axhline(y=CAS, color='green', linestyle='--', label='CAS')
     plt.axvline(x=dISA_i, color='green', linestyle='--', label='dISA')
 plt.ylabel('TAS (kts)')
-plt.show()
+plt.show()'''
 
 print('\n_________ Question 5 _________')
 print('Un avion vole à 275 kts CAS.')
@@ -93,6 +78,7 @@ if abs(Mach_i - 0.76) / Mach_i < 0.01:
 else:
     print("Il n'y a pas de conditions où la valeur de le nombre de mach est de 0.76.")
 
+'''
 plt.plot(altitudes, Mach, color='blue')
 #plt.title("Mach en fonction de l'altitude")
 plt.xlabel('Altitude (ft)')
@@ -102,7 +88,7 @@ if idx != -1:
     plt.axvline(x=alt_i, color='green', linestyle='--', label='Altitude')
 plt.ylabel('Mach')
 plt.show()
-
+'''
 
 print('\n_________ Question 6 _________')
 print("Un avion vole à une altitude pression de 15 000 ft à une température de 0 °C en conditions givrantes et de \n"
@@ -135,13 +121,12 @@ if abs(T0_i - 10) / T0_i < 0.01:
 else:
     print("Il n'y a pas de conditions où la température totale aux points de stagnation sera de 10°C.")
 
-plt.plot(CAS, temps, color='red')
+'''plt.plot(CAS, temps, color='red')
 #plt.title("La température totale (°C) en fonction de la vitesse calibrée (kts).")
 plt.xlabel('CAS (kts)')
 plt.grid()
-
 if idx != -1:
     plt.axvline(x=CAS_i, color='green', linestyle='--', label='CAS Objective')
     plt.axhline(y=T0_i, color='green', linestyle='--', label='Altitude')
 plt.ylabel('Température Totale (°C)')
-plt.show()
+plt.show()'''
