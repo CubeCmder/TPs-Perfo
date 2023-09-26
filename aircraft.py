@@ -1,4 +1,5 @@
 from typing import Any
+import numpy as np
 
 
 class aircraft():
@@ -70,6 +71,10 @@ class aircraft():
         self.V_FE_F20 = 210  # Maximum CAS with flaps deployed at 20° [kts]
         self.V_FE_F45 = 180  # Maximum CAS with flaps deployed at 20° [kts]
         self.V_LO = self.V_LE = 220  # Maximum CAS with LG deployed [kts]
+        self.V_mca = 95  #minimum control speed in the air (take-off) (KCAS)
+        self.V_mcl = 92  #minimum control speed in the air (landing) (KCAS)
+        self.V_mcg = 90  #minimum control speed on the ground (take-off) (KCAS)
+        self.V_1mcg = 95  #minimum v1 based on engine failure at vmcg (KCAS)
 
         #  *********************************************************
         #                 MAXIMUM LIFT COEFFICIENT
@@ -94,14 +99,75 @@ class aircraft():
         #                   DRAG COEFFICIENTS
         #  *********************************************************
 
-        d_CD_LG = 0.02  # DRAG INCREMENT WITH LANDING GEAR DOWN
-        d_CD_WM = 0.0030 # (windmilling drag coefficient) - OEI
+        self.d_CD_LG = 0.02  # DRAG INCREMENT WITH LANDING GEAR DOWN
+        self.d_CD_WM = 0.0030 # (windmilling drag coefficient) - OEI
+
+        # *********************************************************
+        #                   Speed and time increments
+        #  *******************************************************
+        #self.twdv = #(Climb gradient at 35 ft – θ)(based on V2, gear up and AF = 0)
+        #self.dvrvl = #Speed spread from rotation to lift - off(normal rotation)(ft / s)
+        #self.dvlo35 = #Speed spread from lift-off to 35 ft(ft / s)
+        #self.dvlo15 = #Speed spread from lift-off to 15 ft(ft / s)
+
+        #self.twdt = #(Climb gradient at 35 ft – θ)(based on V2, gear up and AF = 0)
+        #self.dtvrvl = #Time between Vr and Vlo
+        #self.dtvlo35 = #Time between Vlo and 35 ft
+        #self.dtvlo15 = #Time between Vlo and 15 ft
+
+        self.ndv = 8
+        self.twdv = [0.000, 0.010, 0.020, 0.100, 0.120, 0.200, 0.400, 0.60]
+        self.dvrvl = [1.80, 2.30, 2.75, 6.50, 7.35, 10.80, 19.80, 30.0]
+        self.dvlo35 = [0.00, 0.00, 1.00, 9.00, 11.00, 16.70, 31.00, 45.0]
+        self.dvlo15 = [0.00, 0.00, 1.00, 8.05, 9.80, 13.00, 21.00, 29.0]
+
+        self.ndt = 11
+        self.twdt = [0.0, 0.02, 0.03, 0.05, .065, .075, 0.10, 0.18, 0.2, 0.4, 0.6]
+        self.dtvrvl = [2.35, 2.25, 2.19, 2.09, 2.01, 1.96, 1.83, 1.41, 1.30, 1.30, 1.30]
+        self.dtvlo35 = [17.00, 10.00, 6.60, 5.50, 5.10, 4.90, 4.50, 3.80, 3.80, 3.80, 3.80]
+        self.dtvlo15 = [12.00, 7.20, 4.70, 4.10, 3.92, 3.80, 3.50, 2.55, 2.55, 2.55, 2.55]
+
+        #  *********************************************************
+        #                       Brake Coefficient
+        #  *********************************************************
+        self.kemax = 16.7 #max demonstrated brake energy per brake (million ft-lb)
+        self.fuse_plug_limit = 11.5 #fuse plug limit brake energy per brake (million ft-lb)
+        self.mu_dry = 0.400  #Airplane braking coefficient on dry runway
+        self.rollmu = 0.200  #Rolling coefficient of friction
+        self.mu_wet = 0.225  #Brake mu on wet runways
+        self.mu_snow = 0.200  #Brake mu on compacted snow covered runway
+        self.mu_ice = 0.050  #Brake mu on ice covered runway
+        self.Pm = 165  #Main tire pressure (psi)
+        self.tiremax = 210  #Maximum allowable tire speed (mph)
+        self.nb_brake = 4  #Number of brakes
+
+        #  *********************************************************
+        #                       T.O / R.T.O. Time Delays
+        #  *********************************************************
+        self.dtdwm = 0  #Time to reach windmilling drag level following an engine cut (sec)
+        self.dtapr = 0  #Time to reach apr thrust (sec)
+        self.dtrec = 1  #Engine failure recognition time (sec)
+        self.dtidle = 0  #Time to reach idle thrust after throttles chopped (sec)
+        self.tbrake = 0  #Time from V1 to brake application (sec)
+        self.tpower = 0  #Time from V1 to throttle chop to idle( sec)
+        self.tdump = 0  #Time from V1 to GLD fully deployed (sec)
 
 
         #  *********************************************************
-        #
+        #        Landing Delay Time/Decel and parametric param
         #  *********************************************************
+        self.dtdelay = 1.2
+        self.adelay = 4
+        self.tair_min = 3.48
+        self.at = 2.6337
+        self.bt = 0.4443
+        self.ct = 0.3584
+        self.av = 1.1097
+        self.bv = -0.0043
+        self.cv = -0.0027
 
+
+    #  ===============================================================================
     def _induced_drag_efficiency_factor(self, flap_angle):
         """
         Induced drag K-factor
@@ -195,7 +261,7 @@ class aircraft():
 
         return np.interp(mach, x_pts, y_pts)
 
-    def d_CD_Control_OEI(self, q, thrust, air=True):
+    def d_CD_OEI(self, q, thrust, air=True):
         """
         ENGINE-OUT CONTROL DRAG (in the air)
 
@@ -204,12 +270,17 @@ class aircraft():
         :param air: Whether the aircraft is in the air or on the ground (True means in the air)
         :return:
         """
+        #Windmilling Drag
+        d_CD_WM = self.d_CD_WM
 
+        # Engine-Out Control Drag
         if air:
-            CT = T / (q * self.S)
-            return 0.10*CT^2
+            CT = thrust / (q * self.S)
+            d_CD_NTL = 0.10*CT^2
         else:
-            return 0.0020
+            d_CD_NTL = 0.0020
+
+        return d_CD_WM + d_CD_NTL
 
     def d_CD_comp(self, mach, CL):
         """
@@ -227,6 +298,7 @@ class aircraft():
             return (-99.3434 + 380.888*mach - 486.8*mach^2 + 207.408*mach^3)*CL^2
         else:
             raise Exception("Mach number is beyond defined limits [0.00, 0.85]")
+
 
 
     def d_CD_turn(self, CL, flap_angle=0, phi=None, Nz = None):
@@ -250,9 +322,38 @@ class aircraft():
 
         return K*CL**2*(Nz-1)
 
+    def aero_coefficient_taxi(self, flap_angle=0, spoilers = False):
+        """
+        Drag due to banking.
 
+        :param flap_angle: Flap deployment angle [0°, 20° or 45°]
+        :param spoilers: Spoilers extension, False = not extended
+        :return: cl, cd
+        """
 
+        if flap_angle == 0:
+            if spoilers:
+                cl = -0.0870
+                cd = 0.0905
+            else:
+                cl = 0.2630
+                cd = 0.0413
+        if flap_angle == 20:
+            if spoilers:
+                cl = 0.2090
+                cd = 0.1171
+            else:
+                cl = 0.8290
+                cd = 0.0750
+        if flap_angle == 45:
+            if spoilers:
+                cl = 0.4110
+                cd = 0.1753
+            else:
+                cl = 1.361
+                cd = 0.1593
 
+        return cl , cd
 
 
 
