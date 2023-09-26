@@ -1,5 +1,6 @@
 from typing import Any
 import numpy as np
+import warnings
 
 
 class aircraft():
@@ -46,21 +47,25 @@ class aircraft():
         # AIRCRAFT ENGINE DATA
         self.n_engines = 2  # number of engines
 
+        # MTOFN = Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
         # Note: Above ISA+15, MTOFN reduces by 1 % per degree C
-        self.MTOFN = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M  # Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
+        self.MTOFN = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
+        # GAFN = Go-Around (GA) thrust per engine (lb) (flat rated to ISA+15)
         self.GAFN = self.MTOFN
 
+        # MCLFN = Maximum Climb (MCL) thrust per engine (lb) (flat rated to ISA+10) (valid up to ISA+10)
         # Note: Above ISA+10, MCLFN reduces by 1 % per degree C
-        self.MCLFN = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M  # Maximum Climb (MCL) thrust per engine (lb) (flat rated to ISA+10) (valid up to ISA+10)
+        self.MCLFN = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
 
         self.MCRFN = MCLFN * 0.98  # Maximum Cruise thrust (MCR) per engine (lb) (flat rated to ISA+10)
         self.MCTFN = MTOFN * 0.90  # Maximum Continuous Thrust (MCT) per engine (lb) (flat rated to ISA+15)
-        self.IDLEFN = 600 - 1000*M  # Idle thrust per engine (lb) (independent of altitude & temperature)
-        self.MXRVFN = -1300 -12000*M  # Max. Reverse thrust per engine (lb) (indep. of altitude & temperature)
-        self.IDRVFN = -160 -3700*M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
+        self.IDLEFN = 600 - 1000 * M  # Idle thrust per engine (lb) (independent of altitude & temperature)
+        self.MXRVFN = -1300 - 12000 * M  # Max. Reverse thrust per engine (lb) (indep. of altitude & temperature)
+        self.IDRVFN = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
 
+        # Specific Fuel Consumption (lb/hr of fuel per lb of thrust per engine)
         # Note: If thrust is below 0 lb, use T = 600 lb/engine for fuel flow calculation.
-        self.SFC = 0.58 + (0.035 * PALT/ 10000)  # Specific Fuel Consumption (lb/hr of fuel per lb of thrust per engine)
+        self.SFC = 0.58 + (0.035 * PALT / 10000)
 
         #                **********************
         #                     Speed limits
@@ -71,10 +76,10 @@ class aircraft():
         self.V_FE_F20 = 210  # Maximum CAS with flaps deployed at 20° [kts]
         self.V_FE_F45 = 180  # Maximum CAS with flaps deployed at 20° [kts]
         self.V_LO = self.V_LE = 220  # Maximum CAS with LG deployed [kts]
-        self.V_mca = 95  #minimum control speed in the air (take-off) (KCAS)
-        self.V_mcl = 92  #minimum control speed in the air (landing) (KCAS)
-        self.V_mcg = 90  #minimum control speed on the ground (take-off) (KCAS)
-        self.V_1mcg = 95  #minimum v1 based on engine failure at vmcg (KCAS)
+        self.V_mca = 95  # minimum control speed in the air (take-off) (KCAS)
+        self.V_mcl = 92  # minimum control speed in the air (landing) (KCAS)
+        self.V_mcg = 90  # minimum control speed on the ground (take-off) (KCAS)
+        self.V_1mcg = 95  # minimum v1 based on engine failure at vmcg (KCAS)
 
         #  *********************************************************
         #                 MAXIMUM LIFT COEFFICIENT
@@ -100,20 +105,20 @@ class aircraft():
         #  *********************************************************
 
         self.d_CD_LG = 0.02  # DRAG INCREMENT WITH LANDING GEAR DOWN
-        self.d_CD_WM = 0.0030 # (windmilling drag coefficient) - OEI
+        self.d_CD_WM = 0.0030  # (windmilling drag coefficient) - OEI
 
         # *********************************************************
         #                   Speed and time increments
         #  *******************************************************
-        #self.twdv = #(Climb gradient at 35 ft – θ)(based on V2, gear up and AF = 0)
-        #self.dvrvl = #Speed spread from rotation to lift - off(normal rotation)(ft / s)
-        #self.dvlo35 = #Speed spread from lift-off to 35 ft(ft / s)
-        #self.dvlo15 = #Speed spread from lift-off to 15 ft(ft / s)
+        # self.twdv = #(Climb gradient at 35 ft – θ)(based on V2, gear up and AF = 0)
+        # self.dvrvl = #Speed spread from rotation to lift - off(normal rotation)(ft / s)
+        # self.dvlo35 = #Speed spread from lift-off to 35 ft(ft / s)
+        # self.dvlo15 = #Speed spread from lift-off to 15 ft(ft / s)
 
-        #self.twdt = #(Climb gradient at 35 ft – θ)(based on V2, gear up and AF = 0)
-        #self.dtvrvl = #Time between Vr and Vlo
-        #self.dtvlo35 = #Time between Vlo and 35 ft
-        #self.dtvlo15 = #Time between Vlo and 15 ft
+        # self.twdt = #(Climb gradient at 35 ft – θ)(based on V2, gear up and AF = 0)
+        # self.dtvrvl = #Time between Vr and Vlo
+        # self.dtvlo35 = #Time between Vlo and 35 ft
+        # self.dtvlo15 = #Time between Vlo and 15 ft
 
         self.ndv = 8
         self.twdv = [0.000, 0.010, 0.020, 0.100, 0.120, 0.200, 0.400, 0.60]
@@ -130,28 +135,27 @@ class aircraft():
         #  *********************************************************
         #                       Brake Coefficient
         #  *********************************************************
-        self.kemax = 16.7 #max demonstrated brake energy per brake (million ft-lb)
-        self.fuse_plug_limit = 11.5 #fuse plug limit brake energy per brake (million ft-lb)
-        self.mu_dry = 0.400  #Airplane braking coefficient on dry runway
-        self.rollmu = 0.200  #Rolling coefficient of friction
-        self.mu_wet = 0.225  #Brake mu on wet runways
-        self.mu_snow = 0.200  #Brake mu on compacted snow covered runway
-        self.mu_ice = 0.050  #Brake mu on ice covered runway
-        self.Pm = 165  #Main tire pressure (psi)
-        self.tiremax = 210  #Maximum allowable tire speed (mph)
-        self.nb_brake = 4  #Number of brakes
+        self.kemax = 16.7  # max demonstrated brake energy per brake (million ft-lb)
+        self.fuse_plug_limit = 11.5  # fuse plug limit brake energy per brake (million ft-lb)
+        self.mu_dry = 0.400  # Airplane braking coefficient on dry runway
+        self.rollmu = 0.200  # Rolling coefficient of friction
+        self.mu_wet = 0.225  # Brake mu on wet runways
+        self.mu_snow = 0.200  # Brake mu on compacted snow covered runway
+        self.mu_ice = 0.050  # Brake mu on ice covered runway
+        self.Pm = 165  # Main tire pressure (psi)
+        self.tiremax = 210  # Maximum allowable tire speed (mph)
+        self.nb_brake = 4  # Number of brakes
 
         #  *********************************************************
         #                       T.O / R.T.O. Time Delays
         #  *********************************************************
-        self.dtdwm = 0  #Time to reach windmilling drag level following an engine cut (sec)
-        self.dtapr = 0  #Time to reach apr thrust (sec)
-        self.dtrec = 1  #Engine failure recognition time (sec)
-        self.dtidle = 0  #Time to reach idle thrust after throttles chopped (sec)
-        self.tbrake = 0  #Time from V1 to brake application (sec)
-        self.tpower = 0  #Time from V1 to throttle chop to idle( sec)
-        self.tdump = 0  #Time from V1 to GLD fully deployed (sec)
-
+        self.dtdwm = 0  # Time to reach windmilling drag level following an engine cut (sec)
+        self.dtapr = 0  # Time to reach apr thrust (sec)
+        self.dtrec = 1  # Engine failure recognition time (sec)
+        self.dtidle = 0  # Time to reach idle thrust after throttles chopped (sec)
+        self.tbrake = 0  # Time from V1 to brake application (sec)
+        self.tpower = 0  # Time from V1 to throttle chop to idle( sec)
+        self.tdump = 0  # Time from V1 to GLD fully deployed (sec)
 
         #  *********************************************************
         #        Landing Delay Time/Decel and parametric param
@@ -165,7 +169,6 @@ class aircraft():
         self.av = 1.1097
         self.bv = -0.0043
         self.cv = -0.0027
-
 
     #  ===============================================================================
     def _induced_drag_efficiency_factor(self, flap_angle):
@@ -187,6 +190,26 @@ class aircraft():
 
         return K
 
+    def CL_at_buffet_vs_mach(self, mach):
+        """
+        LIFT COEFFICIENT AT BUFFET (CL_BUFFET) AS A FUNCTION ON MACH
+        DATA BASED ON 9 % MAC AND FLAP 0
+
+        :param mach: Mach number
+        :return:
+        """
+
+        x_pts = [0.2750, 0.3000, 0.3250, 0.3500, 0.3750, 0.4000, 0.4250, 0.4500,
+                 0.4750, 0.5000, 0.5250, 0.5500, 0.5750, 0.6000, 0.6250, 0.6500,
+                 0.6750, 0.7000, 0.7250, 0.7500, 0.7750, 0.8000, 0.8250, 0.8500,
+                 0.8750, 0.9000]
+
+        y_pts = [1.3424, 1.3199, 1.2974, 1.2667, 1.2310, 1.1930, 1.1551, 1.1191, 1.0863,
+                 1.0577, 1.0337, 1.0142, 0.9989, 0.9868, 0.9764, 0.9659, 0.9530, 0.9349,
+                 0.9085, 0.8698, 0.8149, 0.7391, 0.6373, 0.5039, 0.3330, 0.118]
+
+        return np.interp(mach, x_pts, y_pts)
+
     def lift_curve_aoa(self, aoa, flap_angle, gear_up: bool):
         """
         BASED ON A CG POSITION OF 9% MAC.
@@ -197,7 +220,7 @@ class aircraft():
         :return: Lift coefficient (CL) at given config.
         """
 
-        if gear_up not in [False, True, 0 , 1]:
+        if gear_up not in [False, True, 0, 1]:
             raise Exception('arg <gear_up> must be a boolean value.')
 
         if flap_angle == 0:
@@ -212,7 +235,7 @@ class aircraft():
         if not gear_up:
             CL_0 -= 0.05
 
-        return CL_0 + 0.10*aoa
+        return CL_0 + 0.10 * aoa
 
     def drag_curve_aoa(self, aoa, flap_angle, gear_up: bool):
         """
@@ -227,62 +250,62 @@ class aircraft():
 
         CL = self.lift_curve_aoa(aoa, flap_angle, gear_up)
 
-        if flap_angle == 0:
-            Cdp = 0.0206
-            K = 0.0364
-        elif flap_angle == 20:
-            Cdp = 0.0465
-            K = 0.0334
-        elif flap_angle == 45:
-            Cdp = 0.1386
-            K = 0.0301
-        else:
-            raise Exception('arg <flap_angle> can only be 0, 20 or 45 degrees.')
+        CD = self.CD_profile(flap_angle) + self.CD_induced(CL, flap_angle)
 
-        return Cdp + K*CL^2
+        return CD
 
-    def CL_at_buffet_vs_mach(self, mach):
+    def CD_profile(self, flap_angle):
         """
-        LIFT COEFFICIENT AT BUFFET (CL_BUFFET) AS A FUNCTION ON MACH
-        DATA BASED ON 9 % MAC AND FLAP 0
+        PROFILE DRAG COEFFICIENT
 
-        :param mach: Mach number
+        :param flap_angle: Flap deployment angle [0°, 20° or 45°]
         :return:
         """
 
-        x_pts = [0.2750,  0.3000,  0.3250,  0.3500,  0.3750,  0.4000,  0.4250,  0.4500,
-                 0.4750,  0.5000,  0.5250,  0.5500,  0.5750,  0.6000,  0.6250,  0.6500,
-                 0.6750,  0.7000,  0.7250,  0.7500,  0.7750,  0.8000,  0.8250,  0.8500,
-                 0.8750,  0.9000]
+        if flap_angle == 0:
+            Cdp = 0.0206
+        elif flap_angle == 20:
+            Cdp = 0.0465
+        elif flap_angle == 45:
+            Cdp = 0.1386
+        else:
+            raise Exception('arg <flap_angle> can only be 0, 20 or 45 degrees.')
 
-        y_pts = [1.3424, 1.3199, 1.2974, 1.2667, 1.2310, 1.1930, 1.1551, 1.1191, 1.0863,
-                 1.0577, 1.0337, 1.0142, 0.9989, 0.9868, 0.9764, 0.9659, 0.9530, 0.9349,
-                 0.9085, 0.8698, 0.8149, 0.7391, 0.6373, 0.5039, 0.3330, 0.118]
+        return Cdp
 
-        return np.interp(mach, x_pts, y_pts)
-
-    def d_CD_OEI(self, q, thrust, air=True):
+    def CD_induced(self, CL, flap_angle):
         """
-        ENGINE-OUT CONTROL DRAG (in the air)
+        INDUCED DRAG COEFFICIENT
+
+        :param CL: Lift coefficient
+        :param flap_angle: Flap deployment angle [0°, 20° or 45°]
+        :return:
+        """
+
+        K = self._induced_drag_efficiency_factor(flap_angle)
+
+        return K * CL ^ 2
+
+    def d_CD_CTL_OEI(self, q, thrust, air=True):
+        """
+        ENGINE-OUT DRAG INCREMENT (in the air)
 
         :param q: Dynamic pressure [lbs/ft^2]
         :param thrust: Thrust from operating engine [lbs]
         :param air: Whether the aircraft is in the air or on the ground (True means in the air)
         :return:
         """
-        #Windmilling Drag
-        d_CD_WM = self.d_CD_WM
 
         # Engine-Out Control Drag
         if air:
             CT = thrust / (q * self.S)
-            d_CD_NTL = 0.10*CT^2
+            d_CD_CTL = 0.10 * CT ^ 2
         else:
-            d_CD_NTL = 0.0020
+            d_CD_CTL = 0.0020
 
-        return d_CD_WM + d_CD_NTL
+        return d_CD_CTL
 
-    def d_CD_comp(self, mach, CL):
+    def CD_comp(self, mach, CL):
         """
         DRAG INCREMENT DUE TO COMPRESSIBILITY ΔCD_COMP –  APPLIES TO FLAP 0 ONLY
 
@@ -293,15 +316,13 @@ class aircraft():
         if 0 <= mach <= 0.6:
             return 0
         elif 0.6 < mach <= 0.78:
-            return (0.0508 - 0.1748*mach + 0.1504*mach^2)*CL^2
+            return (0.0508 - 0.1748 * mach + 0.1504 * mach ^ 2) * CL ^ 2
         elif 0.78 < mach <= 0.85:
-            return (-99.3434 + 380.888*mach - 486.8*mach^2 + 207.408*mach^3)*CL^2
+            return (-99.3434 + 380.888 * mach - 486.8 * mach ^ 2 + 207.408 * mach ^ 3) * CL ^ 2
         else:
             raise Exception("Mach number is beyond defined limits [0.00, 0.85]")
 
-
-
-    def d_CD_turn(self, CL, flap_angle=0, phi=None, Nz = None):
+    def d_CD_turn(self, CL, flap_angle=0, phi=None, Nz=None):
         """
         Drag due to banking.
 
@@ -314,15 +335,15 @@ class aircraft():
         if phi is None and Nz is not None:
             pass
         elif phi is not None and Nz is None:
-            Nz = 1/np.cos(np.radians(phi))
+            Nz = 1 / np.cos(np.radians(phi))
         else:
             raise Exception('Ambiguous or erroneous function arguments.')
 
         K = self._induced_drag_efficiency_factor(flap_angle)
 
-        return K*CL**2*(Nz-1)
+        return K * CL ** 2 * (Nz - 1)
 
-    def aero_coefficient_taxi(self, flap_angle=0, spoilers = False):
+    def aero_coefficient_taxi(self, flap_angle=0, spoilers=False):
         """
         Drag due to banking.
 
@@ -353,18 +374,119 @@ class aircraft():
                 cl = 1.361
                 cd = 0.1593
 
-        return cl , cd
+        return cl, cd
 
+    def get_lift_coefficient(self, **kwargs):
+        """
 
+        :param kwargs:
 
+            Several parameters possible:
 
+            ->  Keywords ['Nz', 'weight', 'q', 'S_ref'] Can be used to calculate aircraft lift coefficient
+                based on aircraft weight.
 
+            ->  Keywords ['Nz', 'aoa', 'flap_angle', 'gear_up'] Can be used to calculate aircraft lift
+                coefficient based on aircraft AoA and flap and LG configuration.
 
+            Keyword 'Nz' is optional (assumed to be equal to 1). Keyword 'phi' can also be given to calculate the
+            load factor.
 
+        :Keyword Arguments:
+        * *Nz* --
+          Extra stuff
+        * *weight* --
+          Additional content
 
+        :return:
+        """
 
+        if 'Nz' in kwargs:
+            Nz = kwargs['Nz']
+        elif 'phi' in kwargs:
+            Nz = 1 / np.cos(np.radians(kwargs['phi']))
+        else:
+            Nz = 1
 
+        if all(key in kwargs for key in ['aoa', 'flap_angle', 'gear_up']):
+            CL = Nz * self.lift_curve_aoa(aoa=kwargs['aoa'],
+                                          flap_angle=kwargs['flap_angle'],
+                                          gear_up=kwargs['gear_up'])
 
+        elif all(key in kwargs for key in ['weight', 'q', 'S_ref']):
+            CL = Nz * kwargs['weight'] / (kwargs['q'] * kwargs['S_ref'])
 
+        else:
+            raise Exception('Ambiguous or erroneous function arguments.')
 
+        return CL
 
+    def get_drag_coefficient(self, CL, flap_angle, mach, **kwargs):
+        """
+
+        :param CL:
+        :param flap_angle:
+        :param mach:
+        :param kwargs:
+
+            Required Keywords:
+                -> CL
+                -> flap_angle
+                -> mach
+
+            Optional Keywords:
+                -> OEI
+                -> LDG
+                -> Nz
+                -> phi
+                -> q
+                -> thrust
+
+        :return:
+        """
+
+        if 'OEI' in kwargs:
+            OEI = kwargs['OEI']
+        else:
+            OEI = 0
+
+        if 'LDG' in kwargs:
+            LDG = kwargs['LDG']
+        else:
+            LDG = 0
+
+        if 'Nz' in kwargs:
+            Nz = kwargs['Nz']
+        elif 'phi' in kwargs:
+            Nz = 1 / np.cos(np.radians(kwargs['phi']))
+        else:
+            Nz = 1
+
+        CDp = self.CD_profile(flap_angle)
+        CDi = self.CD_induced(CL, flap_angle)
+        CDi += self.d_CD_turn(CL, flap_angle, Nz)
+        CDcomp = self.CD_comp(mach, CL)
+
+        d_CD_CTL = 0
+        d_CD_WM = 0
+
+        if OEI:
+            if 'q' in kwargs and 'thrust' in kwargs:
+                d_CD_CTL = self.d_CD_CTL_OEI(kwargs['q'], kwargs['thrust'], air=True)
+                d_CD_WM = self.d_CD_WM
+            else:
+                warnings.warn("Missing 'q' and 'thrust' keywords in function arguments! Defaulting to d_CD_OEI = 0.0")
+
+        if LDG:
+            CDp += self.d_CD_LG
+
+        CDtotal = CDp + CDi + CDcomp + d_CD_CTL + d_CD_WM
+
+        drag = {'CDp': CDp,
+                'CDi': CDi,
+                'CDcomp': CDcomp,
+                'CDctl': d_CD_CTL,
+                'CDwm': d_CD_WM,
+                'CDtot': CDtotal}
+
+        return drag
