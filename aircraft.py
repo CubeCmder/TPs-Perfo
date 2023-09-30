@@ -47,25 +47,7 @@ class aircraft():
         # AIRCRAFT ENGINE DATA
         self.n_engines = 2  # number of engines
 
-        # MTOFN = Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
-        # Note: Above ISA+15, MTOFN reduces by 1 % per degree C
-        self.MTOFN = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
-        # GAFN = Go-Around (GA) thrust per engine (lb) (flat rated to ISA+15)
-        self.GAFN = self.MTOFN
 
-        # MCLFN = Maximum Climb (MCL) thrust per engine (lb) (flat rated to ISA+10) (valid up to ISA+10)
-        # Note: Above ISA+10, MCLFN reduces by 1 % per degree C
-        self.MCLFN = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
-
-        self.MCRFN = MCLFN * 0.98  # Maximum Cruise thrust (MCR) per engine (lb) (flat rated to ISA+10)
-        self.MCTFN = MTOFN * 0.90  # Maximum Continuous Thrust (MCT) per engine (lb) (flat rated to ISA+15)
-        self.IDLEFN = 600 - 1000 * M  # Idle thrust per engine (lb) (independent of altitude & temperature)
-        self.MXRVFN = -1300 - 12000 * M  # Max. Reverse thrust per engine (lb) (indep. of altitude & temperature)
-        self.IDRVFN = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
-
-        # Specific Fuel Consumption (lb/hr of fuel per lb of thrust per engine)
-        # Note: If thrust is below 0 lb, use T = 600 lb/engine for fuel flow calculation.
-        self.SFC = 0.58 + (0.035 * PALT / 10000)
 
         #                **********************
         #                     Speed limits
@@ -236,6 +218,33 @@ class aircraft():
             CL_0 -= 0.05
 
         return CL_0 + 0.10 * aoa
+
+    def get_aoa(self, CL, flap_angle, gear_up: bool):
+        """
+        BASED ON A CG POSITION OF 9% MAC.
+
+        :param CL: Angle of attack [°]
+        :param flap_angle: Flap deployment angle [0°, 20° or 45°]
+        :param gear_up: Whether the landing gear is up or not. True means up (not deployed)
+        :return: Lift coefficient (CL) at given config.
+        """
+
+        if gear_up not in [False, True, 0, 1]:
+            raise Exception('arg <gear_up> must be a boolean value.')
+
+        if flap_angle == 0:
+            CL_0 = 0.05
+        elif flap_angle == 20:
+            CL_0 = 0.25
+        elif flap_angle == 45:
+            CL_0 = 0.55
+        else:
+            raise Exception('arg <flap_angle> can only be 0, 20 or 45 degrees.')
+
+        if not gear_up:
+            CL_0 -= 0.05
+
+        return (CL-CL_0)/0.1
 
     def drag_curve_aoa(self, aoa, flap_angle, gear_up: bool):
         """
@@ -490,3 +499,59 @@ class aircraft():
                 'CDtot': CDtotal}
 
         return drag
+
+    def get_thrust(self, RM, PALT, M, n_engines=self.n_engines):
+
+        """
+        :param RM:
+        :param PALT:
+        :param n_engines:
+
+        :return: Thrust
+        """
+        if RM == 'MTO' or RM == 'GA':
+            # MTOFN = Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
+            # Note: Above ISA+15, MTOFN reduces by 1 % per degree C
+            T_OE = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
+        elif RM == 'MCL':
+            # MCLFN = Maximum Climb (MCL) thrust per engine (lb) (flat rated to ISA+10) (valid up to ISA+10)
+            # Note: Above ISA+10, MCLFN reduces by 1 % per degree C
+            T_OE = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
+        elif RM == 'MCR':
+            MCLFN = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
+            T_OE = MCLFN * 0.98  # Maximum Cruise thrust (MCR) per engine (lb) (flat rated to ISA+10)
+        elif RM == 'MCT':
+            MTOFN = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
+            T_OE = MTOFN * 0.90  # Maximum Continuous Thrust (MCT) per engine (lb) (flat rated to ISA+15)
+        elif RM == 'ID':
+            T_OE = 600 - 1000 * M  # Idle thrust per engine (lb) (independent of altitude & temperature)
+        elif RM == 'MXR':
+            T_OE = -1300 - 12000 * M  # Max. Reverse thrust per engine (lb) (indep. of altitude & temperature)
+        elif TM == 'IDR':
+            T_OE = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
+        else:
+            raise Exception('unexpected engine rating')
+
+        return T_OE * n_engines
+
+    def get_SFC(self, PALT):
+        """
+        :param PALT:
+
+        :return: SFC
+        """
+        # Specific Fuel Consumption (lb/hr of fuel per lb of thrust per engine)
+        # Note: If thrust is below 0 lb, use T = 600 lb/engine for fuel flow calculation.
+        SFC = 0.58 + (0.035 * PALT / 10000)
+
+        return SFC
+
+    def get_NZ(self, L, W):
+        """
+        :param L:
+        :param W:
+
+        :return: Nz
+        """
+
+        return L/W
