@@ -230,12 +230,13 @@ class aircraft():
 
         return CL_act
 
-    def get_aoa(self, CL, flap_angle, gear_up: bool):
+    def get_aoa(self, CL, flap_angle, cg_act, gear_up: bool):
         """
         BASED ON A CG POSITION OF 9% MAC.
 
         :param CL: Angle of attack [°]
         :param flap_angle: Flap deployment angle [0°, 20° or 45°]
+        :param cg_act: cg en %
         :param gear_up: Whether the landing gear is up or not. True means up (not deployed)
         :return: Lift coefficient (CL) at given config.
         """
@@ -255,7 +256,9 @@ class aircraft():
         if not gear_up:
             CL_0 -= 0.05
 
-        return (CL-CL_0)/0.1
+        CL_fwd = CL*[1 + self.mac / self.lt * (self.FWDCG - cg_act)]
+
+        return (CL_fwd-CL_0)/0.1
 
     def drag_curve_aoa(self, aoa, flap_angle, gear_up: bool):
         """
