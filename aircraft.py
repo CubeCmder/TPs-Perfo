@@ -192,12 +192,20 @@ class aircraft():
 
         return np.interp(mach, x_pts, y_pts)
 
-    def lift_curve_aoa(self, aoa, flap_angle, gear_up: bool):
+    def NZ_buffet(self, CL, CL_buffet):
+        """
+        :param mach: Mach number
+        :return NZ_buffet:
+        """
+        return CL_buffet/CL
+
+    def lift_curve_aoa(self, aoa, flap_angle, cg_act, gear_up: bool):
         """
         BASED ON A CG POSITION OF 9% MAC.
 
         :param aoa: Angle of attack [°]
         :param flap_angle: Flap deployment angle [0°, 20° or 45°]
+        :param cg_act: cg en %
         :param gear_up: Whether the landing gear is up or not. True means up (not deployed)
         :return: Lift coefficient (CL) at given config.
         """
@@ -217,7 +225,10 @@ class aircraft():
         if not gear_up:
             CL_0 -= 0.05
 
-        return CL_0 + 0.10 * aoa
+        CL_fwd = CL_0 + 0.10 * aoa
+        CL_act = CL_fwd/[1 + self.mac/self.lt*(self.FWDCG-cg_act)]
+
+        return CL_act
 
     def get_aoa(self, CL, flap_angle, gear_up: bool):
         """
