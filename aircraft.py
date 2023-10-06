@@ -3,6 +3,7 @@ import numpy as np
 import warnings
 
 import velocities
+from atmos import get_delta_ISA
 
 
 class Aircraft:
@@ -535,7 +536,7 @@ class Aircraft:
 
         return drag
 
-    def get_thrust(self, RM, PALT, M, n_engines=None):
+    def get_thrust(self, RM, PALT, M, T, n_engines=None):
 
         """
         :param RM:
@@ -548,20 +549,30 @@ class Aircraft:
         if n_engines is None:
             n_engines = self.n_engines
 
-        if RM == 'MTO' or RM == 'GA':
+        dISA = get_delta_ISA(PALT, T)
+
+        if RM == 'MTO' or RM == 'GA' or RM == 'MCT':
             # MTOFN = Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
             # Note: Above ISA+15, MTOFN reduces by 1 % per degree C
             T_OE = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
-        elif RM == 'MCL':
+
+            if dISA > 15:
+                T_OE *= (1-1/100*(dISA-15))
+
+            if RM == 'MCT':
+                T_OE *= 0.90
+
+        elif RM == 'MCL' or RM == 'MCR':
             # MCLFN = Maximum Climb (MCL) thrust per engine (lb) (flat rated to ISA+10) (valid up to ISA+10)
             # Note: Above ISA+10, MCLFN reduces by 1 % per degree C
             T_OE = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
-        elif RM == 'MCR':
-            MCLFN = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
-            T_OE = MCLFN * 0.98  # Maximum Cruise thrust (MCR) per engine (lb) (flat rated to ISA+10)
-        elif RM == 'MCT':
-            MTOFN = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
-            T_OE = MTOFN * 0.90  # Maximum Continuous Thrust (MCT) per engine (lb) (flat rated to ISA+15)
+
+            if dISA > 10:
+                T_OE *= (1-1/100*(dISA-10))
+
+            if RM == 'MCR':
+                T_OE *= 0.98
+
         elif RM == 'ID':
             T_OE = 600 - 1000 * M  # Idle thrust per engine (lb) (independent of altitude & temperature)
         elif RM == 'MXR':
@@ -570,6 +581,38 @@ class Aircraft:
             T_OE = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
         else:
             raise Exception('Unexpected engine rating')
+        #
+        #
+        #
+        #
+        # if RM == 'MTO' or RM == 'GA':
+        #     # MTOFN = Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
+        #     # Note: Above ISA+15, MTOFN reduces by 1 % per degree C
+        #     T_OE = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
+        #     if dISA > 15:
+        #         T_OE *= 1/100*(dISA-15)
+        # elif RM == 'MCL':
+        #     # MCLFN = Maximum Climb (MCL) thrust per engine (lb) (flat rated to ISA+10) (valid up to ISA+10)
+        #     # Note: Above ISA+10, MCLFN reduces by 1 % per degree C
+        #     T_OE = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
+        #     if dISA > 10:
+        #         T_OE *= 1/100*(dISA-10)
+        # elif RM == 'MCR':
+        #     T_OE = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
+        #     if dISA > 10:
+        #         T_OE *= 1/100*(dISA-10)
+        #     T_OE = T_OE * 0.98  # Maximum Cruise thrust (MCR) per engine (lb) (flat rated to ISA+10)
+        # elif RM == 'MCT':
+        #     MTOFN = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
+        #     T_OE = MTOFN * 0.90  # Maximum Continuous Thrust (MCT) per engine (lb) (flat rated to ISA+15)
+        # elif RM == 'ID':
+        #     T_OE = 600 - 1000 * M  # Idle thrust per engine (lb) (independent of altitude & temperature)
+        # elif RM == 'MXR':
+        #     T_OE = -1300 - 12000 * M  # Max. Reverse thrust per engine (lb) (indep. of altitude & temperature)
+        # elif RM == 'IDR':
+        #     T_OE = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
+        # else:
+        #     raise Exception('Unexpected engine rating')
 
         return T_OE * n_engines
 

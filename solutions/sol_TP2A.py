@@ -2,6 +2,8 @@ import numpy as np
 import openpyxl
 import re
 
+from tabulate import tabulate
+
 from velocities import *
 from atmos import *
 from aircraft import Aircraft
@@ -103,7 +105,7 @@ if __name__ == '__main__':
 
         cases[row[0]] = case
 
-
+    results = {}
     for id in cases:
         case = cases[id]
 
@@ -117,10 +119,14 @@ if __name__ == '__main__':
         Nz = case['Nz']
         RM = case['RM']
 
+        n_engines = 2
         if 'AEO' in RM:
             OEI_tag = False
-        else:
+        elif 'OEI' in RM:
             OEI_tag = True
+            n_engines = 1
+        else:
+            OEI_tag = False
 
         p = pressure_from_alt(hp)
 
@@ -132,13 +138,11 @@ if __name__ == '__main__':
             thrust = extract_float_from_string(RM)[0]
         else:
             if 'idle' in RM:
-                thrust = aircraft.get_thrust('ID', hp, mach)
+                thrust = aircraft.get_thrust('ID', hp, mach, T, n_engines=n_engines)
             else:
-                thrust = aircraft.get_thrust(RM.split()[0], hp, mach)
+                thrust = aircraft.get_thrust(RM.split()[0], hp, mach, T, n_engines=n_engines)
 
         CL = aircraft.get_lift_coefficient(Nz=Nz, weight=weight, q=q, S_ref=aircraft.S) # Not corrected for CG
-
-        #CL = aircraft.get_lift_coefficient(Nz=Nz, weight=weight, q=q, S_ref=aircraft.S, cg=cg)
 
         CD = aircraft.get_drag_coefficient(CL, flap_angle, mach, Nz=Nz, OEI=OEI_tag, LDG=not g_u, q=q, thrust=thrust)
         CDp = CD['CDp']
@@ -158,21 +162,25 @@ if __name__ == '__main__':
         nz_buffet = 0  #
 
         AoA = aircraft.get_aoa(CL, flap_angle, cg, g_u)
-        print(f'# =================================================\n#                       CASE {id}\n# =================================================')
+        results[id] = {}
+        results[id]['CD'] = CDtot
+        results[id]['CL'] = CL
+        results[id]['L/D'] = CL/CDtot
+        results[id]['CDp'] = CDp
+        results[id]['CDi'] = CDi
+        results[id]['CDcomp'] = CDcomp
+        results[id]['CDctl'] = CDctl
+        results[id]['CDwm'] = CDwm
+        results[id]['Thrust'] = thrust
+        results[id]['Drag'] = drag_force
+        results[id]['AOA'] = AoA
 
-        print(f'CL = {CL:0.6f}')
-        print(f'CD (Total) = {CDtot:0.5f}')
-        print(f'L/D = {CL/CDtot:0.3f}')
-        print(f'CDp = {CDp:0.5f}')
-        print(f'CDi = {CDi:0.5f}')
-        print(f'CDcomp = {CDcomp:0.5f}')
-        print(f'CDctl = {CDctl:0.5f}')
-        print(f'CDwm = {CDwm:0.5f}')
+    headers = ['Cas', 'Cd', 'Cl', 'L/D', 'Cdp', 'Cdi', 'Cdcomp', 'Cdcntl', 'Cdwm', 'Pousée Totale', 'Trainée', 'AOA']
 
-        print(f'AoA = {AoA:0.4f}')
-
-
-
+    print(tabulate([[name, *inner.values()] for name, inner in results.items()],
+                   headers = headers,
+                   tablefmt="github",
+                   floatfmt=(".0f",".6f", ".5f", ".5f", ".5f", ".5f", ".5f", ".5f", ".5f", ".1f", ".4f")))
 
 
 
