@@ -573,3 +573,12 @@ class Aircraft:
         """
 
         return L/W
+
+    def get_phi(selfself, NZ):
+        """
+        :param NZ:
+
+        :return: phi: Bank angle
+        """
+
+        return np.acos(1/NZ)
