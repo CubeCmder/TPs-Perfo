@@ -17,7 +17,7 @@ class Aircraft:
         self.MXFUEL = 15000.0
 
         # CG
-        self.FWDCG = 9.0
+        self.FWDCG = 9.0/100
 
         # AIRCRAFT GEOMETRY
         self.S = 520.0  # Wing area (ft^2)
@@ -256,7 +256,7 @@ class Aircraft:
         if not gear_up:
             CL_0 -= 0.05
 
-        CL_fwd = CL*[1 + self.mac / self.lt * (self.FWDCG - cg_act)]
+        CL_fwd = CL*(1 + self.mac / self.lt * (self.FWDCG - cg_act))
 
         return (CL_fwd-CL_0)/0.1
 
@@ -307,7 +307,7 @@ class Aircraft:
 
         K = self._induced_drag_efficiency_factor(flap_angle)
 
-        return K * CL ^ 2
+        return K * CL ** 2
 
     def d_CD_CTL_OEI(self, q, thrust, air=True):
         """
@@ -322,7 +322,7 @@ class Aircraft:
         # Engine-Out Control Drag
         if air:
             CT = thrust / (q * self.S)
-            d_CD_CTL = 0.10 * CT ^ 2
+            d_CD_CTL = 0.10 * CT ** 2
         else:
             d_CD_CTL = 0.0020
 
@@ -339,9 +339,9 @@ class Aircraft:
         if 0 <= mach <= 0.6:
             return 0
         elif 0.6 < mach <= 0.78:
-            return (0.0508 - 0.1748 * mach + 0.1504 * mach ^ 2) * CL ^ 2
+            return (0.0508 - 0.1748 * mach + 0.1504 * mach ** 2) * CL ** 2
         elif 0.78 < mach <= 0.85:
-            return (-99.3434 + 380.888 * mach - 486.8 * mach ^ 2 + 207.408 * mach ^ 3) * CL ^ 2
+            return (-99.3434 + 380.888 * mach - 486.8 * mach ** 2 + 207.408 * mach ** 3) * CL ^ 2
         else:
             raise Exception("Mach number is beyond defined limits [0.00, 0.85]")
 
@@ -438,11 +438,30 @@ class Aircraft:
 
         elif all(key in kwargs for key in ['weight', 'q', 'S_ref']):
             CL = Nz * kwargs['weight'] / (kwargs['q'] * kwargs['S_ref'])
-
         else:
             raise Exception('Ambiguous or erroneous function arguments.')
 
+        if all(key in kwargs for key in ['cg']):
+            CL = CL*(1+self.mac/self.lt *(self.FWDCG-kwargs['cg']))
+
         return CL
+
+    def get_CL_max(self, flap_angle, gear_up):
+
+        if gear_up:
+            if flap_angle == 0:
+                return self.CLMAX_F00_GU
+            elif flap_angle == 20:
+                return self.CLMAX_F20_GU
+            elif flap_angle == 45:
+                raise Exception('Configuration not defined')
+        else:
+            if flap_angle == 0:
+                return self.CLMAX_F00_GD
+            elif flap_angle == 20:
+                return self.CLMAX_F20_GD
+            elif flap_angle == 45:
+                return self.CLMAX_F45_GD
 
     def get_drag_coefficient(self, CL, flap_angle, mach, **kwargs):
         """
@@ -548,7 +567,7 @@ class Aircraft:
         elif RM == 'IDR':
             T_OE = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
         else:
-            raise Exception('unexpected engine rating')
+            raise Exception('Unexpected engine rating')
 
         return T_OE * n_engines
 

@@ -50,6 +50,7 @@ def get_dynamic_pressure(p, T=None, v=None, mach=None):
     """
 
     if v is None and mach is not None:
+        return get_equivalent_airspeed(p, mach)**2 / 295.37
         return 1481.3 * p / P_0 * mach ** 2
 
     elif v is not None and mach is None and T is None:
@@ -216,6 +217,13 @@ def get_true_airspeed(p, mach, a=None, temp=None, knots=True):
     else:
         return knots2fps(a * (5 * ((qc / p + 1) ** 0.2857 - 1)) ** 0.5)
 
+def get_stall_speed(W, Nz, hp, S, Clmax):
+    rho = density_from_alt(hp)
+    #L = q S CL
+
+    #q = L/ (CL S) = Nz W / (CL S)
+    #V2 = 2 Nz W / (rho CL S)
+    return np.sqrt(2*(W*Nz)/(rho*S*Clmax))
 
 def get_viscosity(p,T):
     """
