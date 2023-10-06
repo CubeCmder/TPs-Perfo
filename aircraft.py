@@ -3,7 +3,7 @@ import numpy as np
 import warnings
 
 
-class aircraft():
+class Aircraft:
     CLMAX_F45_GD: Any
 
     def __init__(self):
@@ -458,10 +458,10 @@ class aircraft():
                 -> mach
 
             Optional Keywords:
-                -> OEI
-                -> LDG
-                -> Nz
-                -> phi
+                -> OEI: Account for OEI drag contributions if True, else False
+                -> LDG: Set True if landing gear deployed
+                -> Nz: Load factor
+                -> phi: Banking angle to calculate load factor, in degrees
                 -> q
                 -> thrust
 
@@ -514,7 +514,7 @@ class aircraft():
 
         return drag
 
-    def get_thrust(self, RM, PALT, M, n_engines=self.n_engines):
+    def get_thrust(self, RM, PALT, M, n_engines=None):
 
         """
         :param RM:
@@ -523,6 +523,10 @@ class aircraft():
 
         :return: Thrust
         """
+
+        if n_engines is None:
+            n_engines = self.n_engines
+
         if RM == 'MTO' or RM == 'GA':
             # MTOFN = Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
             # Note: Above ISA+15, MTOFN reduces by 1 % per degree C
@@ -541,7 +545,7 @@ class aircraft():
             T_OE = 600 - 1000 * M  # Idle thrust per engine (lb) (independent of altitude & temperature)
         elif RM == 'MXR':
             T_OE = -1300 - 12000 * M  # Max. Reverse thrust per engine (lb) (indep. of altitude & temperature)
-        elif TM == 'IDR':
+        elif RM == 'IDR':
             T_OE = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
         else:
             raise Exception('unexpected engine rating')
