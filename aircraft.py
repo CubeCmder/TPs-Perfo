@@ -2,6 +2,8 @@ from typing import Any
 import numpy as np
 import warnings
 
+import velocities
+
 
 class Aircraft:
     CLMAX_F45_GD: Any
@@ -574,7 +576,18 @@ class Aircraft:
 
         return L/W
 
-    def get_phi(selfself, NZ):
+    def get_NZ_sw(self, W, Vt, flap_angle, acg_act, gear_up,p,NZ_sw=True,T=None,v=None,M=None):
+        aoa_SW = self.fuse_AOA_SW[flap_angle]
+        CL_sw = self.lift_curve_aoa(aoa_SW,flap_angle,acg_act,gear_up)
+        qp = velocities.get_dynamic_pressure(p,T=T,v=v,mach=M)
+        L_stall = CL_sw*qp*self.S
+        NZ_sw = L_stall/W
+        if NZ_sw:
+            return NZ_sw
+        else:
+            return self.get_phi(NZ_sw)
+
+    def get_phi(self, NZ):
         """
         :param NZ:
 
