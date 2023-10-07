@@ -157,6 +157,11 @@ if __name__ == '__main__':
         drag_force = get_dynamic_pressure(p,T,mach=mach) * aircraft.S * CDtot
         lift_force = get_dynamic_pressure(p, T, mach=mach) * aircraft.S * CL
 
+        CAS = get_calibrated_airspeed(p, mach)
+        Vs = get_stall_speed(weight, Nz, hp, aircraft.S, CL)
+
+        CLsw = get_lift_coefficient(p, Vs, weight, T, aircraft.S)
+
         nz_sw = 0  # load factor at stall warning
         phi_sw = 0  # bank angle at stall warning
         nz_buffet = 0  #
@@ -174,6 +179,7 @@ if __name__ == '__main__':
         results[id]['Thrust'] = thrust
         results[id]['Drag'] = drag_force
         results[id]['AOA'] = AoA
+
 
     headers = ['Cas', 'Cd', 'Cl', 'L/D', 'Cdp', 'Cdi', 'Cdcomp', 'Cdcntl', 'Cdwm', 'Pousée Totale', 'Trainée', 'AOA']
 
