@@ -3,7 +3,7 @@ import numpy as np
 import warnings
 
 from velocities import get_dynamic_pressure
-from atmos import get_delta_ISA
+from atmos import get_delta_ISA, P_0
 
 
 class Aircraft():
@@ -209,7 +209,7 @@ class Aircraft():
         CL_buffet = self.CL_at_buffet_vs_mach(mach)/(1 + self.mac/self.lt*(self.FWDCG-cg))
         return CL_buffet/CL
 
-    def lift_curve_aoa(self, aoa, flap_angle, cg_act, gear_up: bool):
+    def lift_curve_aoa(self, aoa, flap_angle, cg_act=None, gear_up=True):
         """
         BASED ON A CG POSITION OF 9% MAC.
 
@@ -236,9 +236,11 @@ class Aircraft():
             CL_0 -= 0.05
 
         CL_fwd = CL_0 + 0.10 * aoa
-        CL_act = CL_fwd/(1 + self.mac/self.lt*(self.FWDCG-cg_act))
 
-        return CL_act
+        if cg_act is not None:
+            return CL_fwd/(1 + self.mac/self.lt*(self.FWDCG-cg_act))
+        else:
+            return CL_fwd
 
     def get_aoa(self, CL, flap_angle, cg_act, gear_up: bool):
         """
@@ -351,7 +353,7 @@ class Aircraft():
         elif 0.6 < mach <= 0.78:
             return (0.0508 - 0.1748 * mach + 0.1504 * mach ** 2) * CL ** 2
         elif 0.78 < mach <= 0.85:
-            return (-99.3434 + 380.888 * mach - 486.8 * mach ** 2 + 207.408 * mach ** 3) * CL ^ 2
+            return (-99.3434 + 380.888 * mach - 486.8 * mach ** 2 + 207.408 * mach ** 3) * CL ** 2
         else:
             raise Exception("Mach number is beyond defined limits [0.00, 0.85]")
 
@@ -605,38 +607,6 @@ class Aircraft():
             T_OE = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
         else:
             raise Exception('Unexpected engine rating')
-        #
-        #
-        #
-        #
-        # if RM == 'MTO' or RM == 'GA':
-        #     # MTOFN = Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
-        #     # Note: Above ISA+15, MTOFN reduces by 1 % per degree C
-        #     T_OE = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
-        #     if dISA > 15:
-        #         T_OE *= 1/100*(dISA-15)
-        # elif RM == 'MCL':
-        #     # MCLFN = Maximum Climb (MCL) thrust per engine (lb) (flat rated to ISA+10) (valid up to ISA+10)
-        #     # Note: Above ISA+10, MCLFN reduces by 1 % per degree C
-        #     T_OE = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
-        #     if dISA > 10:
-        #         T_OE *= 1/100*(dISA-10)
-        # elif RM == 'MCR':
-        #     T_OE = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
-        #     if dISA > 10:
-        #         T_OE *= 1/100*(dISA-10)
-        #     T_OE = T_OE * 0.98  # Maximum Cruise thrust (MCR) per engine (lb) (flat rated to ISA+10)
-        # elif RM == 'MCT':
-        #     MTOFN = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
-        #     T_OE = MTOFN * 0.90  # Maximum Continuous Thrust (MCT) per engine (lb) (flat rated to ISA+15)
-        # elif RM == 'ID':
-        #     T_OE = 600 - 1000 * M  # Idle thrust per engine (lb) (independent of altitude & temperature)
-        # elif RM == 'MXR':
-        #     T_OE = -1300 - 12000 * M  # Max. Reverse thrust per engine (lb) (indep. of altitude & temperature)
-        # elif RM == 'IDR':
-        #     T_OE = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
-        # else:
-        #     raise Exception('Unexpected engine rating')
 
         return T_OE * n_engines
 
@@ -681,3 +651,19 @@ class Aircraft():
         """
 
         return np.degrees(np.arccos(1/NZ))
+
+    def get_cg_from_CL(self, CL_act, AoA, flap_angle, gear_up):
+
+        CL_fwd = self.lift_curve_aoa(AoA, flap_angle, gear_up=gear_up)
+
+        # cg_act = (1-CL_fwd/CL_act)*lt/mac
+
+        return (1 - CL_fwd/CL_act)*self.lt/self.mac+self.FWDCG
+
+    def get_mach_from_VSR(self, p, weight, vsr_mult, Nz, flap_angle, gear_up):
+
+        delta = p / P_0
+        CL = self.get_CL_max(flap_angle, gear_up=gear_up) / vsr_mult ** 2
+        mach = np.sqrt((weight * Nz / delta) / 1481.3 / CL / self.S)
+        return mach
+

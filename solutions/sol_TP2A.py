@@ -78,9 +78,7 @@ if __name__ == '__main__':
         elif 'Vsr' in row[3]:
             vsr_mult = extract_float_from_string(row[3])[0]
 
-            delta = p / P_0
-            CL = aircraft.get_CL_max(flap_angle,gear_up=g_u) / vsr_mult**2
-            mach = np.sqrt((weight*Nz/delta)/1481.3/CL/aircraft.S)
+            mach = aircraft.get_mach_from_VSR(p, weight, vsr_mult, Nz, flap_angle, g_u)
             #Vs = get_stall_speed(weight, Nz,hp,aircraft.S,CL)
             #mach = get_mach_from_calibrated_airspeed(p, Vs * 0.592484)
 
