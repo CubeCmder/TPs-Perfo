@@ -142,7 +142,7 @@ if __name__ == '__main__':
             else:
                 thrust = aircraft.get_thrust(RM.split()[0], hp, mach, T, n_engines=n_engines)
 
-        CL = aircraft.get_lift_coefficient(Nz=Nz, weight=weight, q=q, S_ref=aircraft.S) # Not corrected for CG
+        CL = aircraft.get_lift_coefficient(Nz=Nz, weight=weight, q=q, cg=cg, S_ref=aircraft.S) # Not corrected for CG
 
         CD = aircraft.get_drag_coefficient(CL, flap_angle, mach, Nz=Nz, OEI=OEI_tag, LDG=not g_u, q=q, thrust=thrust)
         CDp = CD['CDp']
@@ -157,14 +157,11 @@ if __name__ == '__main__':
         drag_force = get_dynamic_pressure(p,T,mach=mach) * aircraft.S * CDtot
         lift_force = get_dynamic_pressure(p, T, mach=mach) * aircraft.S * CL
 
-        CAS = get_calibrated_airspeed(p, mach)
-        Vs = get_stall_speed(weight, Nz, hp, aircraft.S, CL)
-
-        CLsw = get_lift_coefficient(p, Vs, weight, T, aircraft.S)
-
-        nz_sw = 0  # load factor at stall warning
-        phi_sw = 0  # bank angle at stall warning
-        nz_buffet = 0  #
+        # load factor at stall warning
+        Nz_sw = aircraft.get_Nz_stall_warning(p, mach, flap_angle, weight, cg, g_u)
+        # bank angle at stall warning
+        phi_sw = aircraft.get_Nz_stall_warning(p, mach, flap_angle, weight, cg, g_u, True)
+        Nz_buffet = aircraft.NZ_buffet(mach, CL, cg)
 
         AoA = aircraft.get_aoa(CL, flap_angle, cg, g_u)
         results[id] = {}
@@ -179,9 +176,12 @@ if __name__ == '__main__':
         results[id]['Thrust'] = thrust
         results[id]['Drag'] = drag_force
         results[id]['AOA'] = AoA
+        results[id]['Nz_sw'] = Nz_sw
+        results[id]['Phi_sw'] = phi_sw
+        results[id]['Nz_buffet'] = Nz_buffet
 
 
-    headers = ['Cas', 'Cd', 'Cl', 'L/D', 'Cdp', 'Cdi', 'Cdcomp', 'Cdcntl', 'Cdwm', 'Pousée Totale', 'Trainée', 'AOA']
+    headers = ['Cas', 'Cd', 'Cl', 'L/D', 'Cdp', 'Cdi', 'Cdcomp', 'Cdcntl', 'Cdwm', 'Pousée Totale', 'Trainée', 'AOA', 'Nz_sw', 'Phi_sw', 'Nz_buffet']
 
     print(tabulate([[name, *inner.values()] for name, inner in results.items()],
                    headers = headers,

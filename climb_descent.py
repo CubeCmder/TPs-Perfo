@@ -3,8 +3,8 @@ import numpy as np
 import warnings
 from velocities import *
 from atmos import *
-
-def climb_descent(R, alt, t, W, RM, n_engines, aoa, flap, landing_gear, aircraft, CAS=None, Mach=None):
+from units import knots2fps
+def climb_descent(aircraft, R, alt, T, W, RM, n_engines, aoa, flap, landing_gear, cg, CAS=None, Mach=None):
     """
     Function that returns all information about climb or descent phase of flight
 
@@ -21,11 +21,13 @@ def climb_descent(R, alt, t, W, RM, n_engines, aoa, flap, landing_gear, aircraft
     :param Mach: Mach (constant if given with regime Mach)
     :return: gradient, ROC, ROCp, AF, a_xfp
     """
+
     p = pressure_from_alt(alt)
-    deltaISA = get_delta_ISA(alt, t)
-    t_std = t + deltaISA
-    if CAS == None and Mach is not None:
-        V = get_true_airspeed(p,Mach,temp=T)
+    deltaISA = get_delta_ISA(alt, T)
+    T_std = T - deltaISA
+
+    if CAS is None and Mach is not None:
+        pass
     elif CAS is not None and Mach is None:
         Mach = get_mach_from_calibrated_airspeed(p, CAS)
     else:
@@ -36,17 +38,22 @@ def climb_descent(R, alt, t, W, RM, n_engines, aoa, flap, landing_gear, aircraft
     else:
         OEI = 1
 
-    T = aircraft.get_thrust(RM, alt, Mach, n_engines=n_engines)
-    CL = aircraft.get_lift_coefficient(1, aoa, flap, landing_gear)
-    CD = aircraft.get_drag_coefficient(CL, flap, Mach, LDG=landing_gear, NZ=1, OEI=OEI)
-    D = CD * 0.5 * V**2 * aircraft.S
+    V = get_true_airspeed(p, Mach, temp=T)
+    V = knots2fps(V)
 
-    AF = get_AF(R, alt, Mach, t, t_std)
-    ROC = get_ROC(V, T, D, W, AF)
-    ROCp = get_ROCp(ROC, t, t_std)
-    gradient = get_gradient(AF,T,W,CD,CL)
+    q = get_dynamic_pressure(p, T, mach=Mach)
 
-    a_xfp = get_accel(T,D,W)
+    Thrust = aircraft.get_thrust(RM, alt, Mach, T, n_engines=n_engines)
+    CL = aircraft.get_lift_coefficient(Nz=1, aoa=aoa, flap_angle=flap, gear_up=landing_gear, cg=cg)
+    CD = aircraft.get_drag_coefficient(CL, flap, Mach, LDG=not landing_gear, NZ=1, OEI=OEI, q=q, thrust=Thrust)['CDtot']
+    D = q * CD * aircraft.S
+
+    AF = get_AF(R, alt, Mach, T, T_std)
+    ROC = get_ROC(V, Thrust, D, W, AF)
+    ROCp = get_ROCp(ROC, T, T_std)
+    gradient = get_gradient(AF,Thrust,W,CD,CL)
+
+    a_xfp = get_accel_xfp(Thrust, W, CD, CL, gradient)
 
     return gradient, ROC, ROCp, AF, a_xfp
 
@@ -55,29 +62,39 @@ def get_gradient(AF,T,W,CD,CL):
     return gradient
 
 def get_AF(R, alt, Mach, t , t_std):
-    phi = (1/0.7*Mach**2)*((1+0.2*Mach**2)**3.5-1)/((1+0.2*Mach**2)**2.5)
+    phi = (1/0.7/Mach**2)*((1+0.2*Mach**2)**3.5-1)/((1+0.2*Mach**2)**2.5)
 
     if alt<36089:
         if R == "CAS" :
             AF = 0.7 * Mach**2 * (phi-0.190263*(t_std/t))
         elif R == "Mach":
-            -0.133184*Mach**2 * (t_std/t)
+            AF = -0.133184*Mach**2 * (t_std/t)
     else:
         if R == "CAS":
             AF = 0.7*Mach**2 * phi
         elif R == "Mach":
-            0
+            AF = 0
 
     return AF
 
 def get_ROC(V, T, D, W, AF):
     ROC = ((V*(T-D))/W)/(1+AF)
-    return ROC
+    return ROC*60
 
 def get_ROCp(ROC,t ,t_std):
-    ROCp = ROC(t_std/t)
+    ROCp = ROC*(t_std/t)
     return ROCp
 
-def get_accel(T,D,W):
-    accel = (T-D)/W * 32.174
+def get_accel_xfp(T, W, CD, CL, gamma):
+    """
+    The acceleration of the aircraft in the direction of the flight trajectory.
+
+    :param T: Total Thrust
+    :param W: Aircraft Weight
+    :param CD: Drag coefficient
+    :param CL: Lift Coefficient
+    :param gamma: Climb gradient
+    :return: accel
+    """
+    accel = (T/W - CD/CL) - gamma
     return accel

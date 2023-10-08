@@ -50,8 +50,9 @@ def get_dynamic_pressure(p, T=None, v=None, mach=None):
     """
 
     if v is None and mach is not None:
-        return get_equivalent_airspeed(p, mach)**2 / 295.37
-        return 1481.3 * p / P_0 * mach ** 2
+        #return get_equivalent_airspeed(p, mach)**2 / 295.37
+        return 0.7*p*mach**2
+        return 1481.3 * (p / P_0) * (mach) ** 2
 
     elif v is not None and mach is None and T is None:
         hp = get_pressure_altitude(p)

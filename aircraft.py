@@ -2,11 +2,11 @@ from typing import Any
 import numpy as np
 import warnings
 
-import velocities
+from velocities import get_dynamic_pressure
 from atmos import get_delta_ISA
 
 
-class Aircraft:
+class Aircraft():
     CLMAX_F45_GD: Any
 
     def __init__(self):
@@ -195,11 +195,18 @@ class Aircraft:
 
         return np.interp(mach, x_pts, y_pts)
 
-    def NZ_buffet(self, CL, CL_buffet):
+    def NZ_buffet(self, mach, CL, cg):
         """
+        Load factor at buffet start. CL buffet is given for CG at 9% MAC, needs to be adjusted!
+
         :param mach: Mach number
-        :return NZ_buffet:
+        :param CL: Current Actual Lift coefficient
+        :param cg: Current cg position (% MAC)
+
+        :return NZ_buffet: Load factor buffet start
         """
+
+        CL_buffet = self.CL_at_buffet_vs_mach(mach)/(1 + self.mac/self.lt*(self.FWDCG-cg))
         return CL_buffet/CL
 
     def lift_curve_aoa(self, aoa, flap_angle, cg_act, gear_up: bool):
@@ -229,7 +236,7 @@ class Aircraft:
             CL_0 -= 0.05
 
         CL_fwd = CL_0 + 0.10 * aoa
-        CL_act = CL_fwd/[1 + self.mac/self.lt*(self.FWDCG-cg_act)]
+        CL_act = CL_fwd/(1 + self.mac/self.lt*(self.FWDCG-cg_act))
 
         return CL_act
 
@@ -402,6 +409,21 @@ class Aircraft:
 
         return cl, cd
 
+    def get_Nz_stall_warning(self, p, mach, flap_angle, weight, cg, gear_up, return_phi=False):
+
+        aoa_SW = self.fuse_AOA_SW[flap_angle]
+
+        CL_sw = self.get_lift_coefficient(Nz=1, aoa=aoa_SW, flap_angle=flap_angle, cg=cg, gear_up=gear_up)
+        q = get_dynamic_pressure(p, mach=mach)
+        L = q*self.S*CL_sw
+        NZ_sw = L/weight
+
+        if not return_phi:
+            return NZ_sw
+        else:
+            return self.get_phi(NZ_sw)
+
+
     def get_lift_coefficient(self, **kwargs):
         """
 
@@ -412,8 +434,8 @@ class Aircraft:
             ->  Keywords ['Nz', 'weight', 'q', 'S_ref'] Can be used to calculate aircraft lift coefficient
                 based on aircraft weight.
 
-            ->  Keywords ['Nz', 'aoa', 'flap_angle', 'gear_up'] Can be used to calculate aircraft lift
-                coefficient based on aircraft AoA and flap and LG configuration.
+            ->  Keywords ['Nz', 'aoa', 'flap_angle', 'cg', 'gear_up'] Can be used to calculate aircraft lift
+                coefficient based on aircraft AoA, flap, CG and LG configuration.
 
             Keyword 'Nz' is optional (assumed to be equal to 1). Keyword 'phi' can also be given to calculate the
             load factor.
@@ -437,15 +459,17 @@ class Aircraft:
         if all(key in kwargs for key in ['aoa', 'flap_angle', 'gear_up']):
             CL = Nz * self.lift_curve_aoa(aoa=kwargs['aoa'],
                                           flap_angle=kwargs['flap_angle'],
+                                          cg_act=kwargs['cg'],
                                           gear_up=kwargs['gear_up'])
 
         elif all(key in kwargs for key in ['weight', 'q', 'S_ref']):
             CL = Nz * kwargs['weight'] / (kwargs['q'] * kwargs['S_ref'])
+            #CL = CL/(1+self.mac/self.lt *(self.FWDCG-kwargs['cg']))
         else:
             raise Exception('Ambiguous or erroneous function arguments.')
 
-        if all(key in kwargs for key in ['cg']):
-            CL = CL*(1+self.mac/self.lt *(self.FWDCG-kwargs['cg']))
+        #if all(key in kwargs for key in ['cg']):
+        #    CL = CL#*(1+self.mac/self.lt *(self.FWDCG-kwargs['cg']))
 
         return CL
 
@@ -638,10 +662,10 @@ class Aircraft:
 
         return L/W
 
-    def get_NZ_sw(self, W, Vt, flap_angle, acg_act, gear_up,p,NZ_sw=True,T=None,v=None,M=None):
+    def get_NZ_sw(self, W, flap_angle, acg_act, gear_up,p,M=None):
         aoa_SW = self.fuse_AOA_SW[flap_angle]
         CL_sw = self.lift_curve_aoa(aoa_SW,flap_angle,acg_act,gear_up)
-        qp = velocities.get_dynamic_pressure(p,T=T,v=v,mach=M)
+        qp = get_dynamic_pressure(p,mach=M)
         L_stall = CL_sw*qp*self.S
         NZ_sw = L_stall/W
         if NZ_sw:
@@ -656,4 +680,4 @@ class Aircraft:
         :return: phi: Bank angle
         """
 
-        return np.acos(1/NZ)
+        return np.degrees(np.arccos(1/NZ))

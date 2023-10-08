@@ -50,6 +50,7 @@ def pressure_from_alt(h, ratio=False):
 
     if -2001 <= h < h_tr:
         delta = (1 - dT_dh / T_0 * h) ** (1 / dT_dh / R)
+        delta = (1-6.87535*10**(-6)*h)**(5.2559)
 
     elif h_tr <= h <= 65617:
         delta = 0.22336 * np.exp(-(h - h_tr) / (R * temp_from_alt(h_tr)))
