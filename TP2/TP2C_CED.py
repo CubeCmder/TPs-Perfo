@@ -31,7 +31,8 @@ aircraft.mac = MAC
 aircraft.lt = Lt
 
 cg_act = aircraft.get_cg_from_CL(CL_act, AoA, flap_angle, lg_up)
-print(cg_act)
+print('Question 2')
+print(f'Position cg actuel : {cg_act:0.2f} %MAC')
 
 
 #### QUESTION 3
@@ -62,7 +63,8 @@ CL_0 = CL_sw_cg9 - aoa_SW*0.1
 lg_up = True
 CL_MAX = aircraft.get_CL_max(flap_angle, lg_up)
 AoA_MAX = (CL_MAX-CL_0)/0.1
-print(AoA_MAX)
+print('Question 3')
+print(f'Maximum angle of attack : {AoA_MAX:0.2f} deg')
 
 
 #### QUESTION 5
@@ -118,15 +120,19 @@ idx = np.argmin(np.abs((gradients - 3)))
 gamma_i = gradients[idx]
 weight_i = W_range[idx]
 
-plt.plot(W_range, gradients, color='red')
+plt.plot(W_range, gradients, color='red', label='Gradient = fct(Weight)')
 plt.xlabel('Aircraft Weight (lbs)')
 plt.grid()
 if idx != -1:
     plt.axvline(x=weight_i, color='green', linestyle='--', label='CAS Objective')
     plt.axhline(y=gamma_i, color='green', linestyle='--', label='Altitude')
 plt.ylabel('Gradient (%)')
+#plt.legend()
+plt.title('Gradient as a function of weight')
 plt.show()
-print(weight_i)
+print('Question 5')
+print(f'Weight : {weight_i:0.2f} lb')
+print(f'Gradient : {gamma_i:0.2f} deg')
 
 #### QUESTION 6
 """
@@ -181,14 +187,17 @@ gamma_i = gradients[idx]
 mach_i = mach_range[idx]
 
 plt.plot(mach_range, gradients, color='red')
-plt.xlabel('Aircraft Weight (lbs)')
+plt.xlabel('Mach ( )')
 plt.grid()
 if idx != -1:
     plt.axvline(x=mach_i, color='green', linestyle='--', label='CAS Objective')
     plt.axhline(y=gamma_i, color='green', linestyle='--', label='Altitude')
 plt.ylabel('Gradient (%)')
+plt.title('Gradient as a function of Mach number')
 plt.show()
-print(mach_i)
+print('Question 6')
+print(f'Mach Number : {mach_i:0.2f} ')
+print(f'Gradient : {gamma_i:0.2f} deg')
 
 #### QUESTION 7
 """
@@ -243,12 +252,16 @@ drag_i = drags[idx]
 mach_i = mach_range[idx]
 
 fig, ax = plt.subplots()
-ax.plot(mach_range, drags, color='red')
-ax.plot(mach_range, thrusts, color='orange')
+ax.plot(mach_range, drags, color='red', label='Drag')
+ax.plot(mach_range, thrusts, color='orange', label='Thrust')
 ax.set(xlabel='Mach', ylabel='Force (lbs)')
 ax.grid()
 if idx != -1:
     ax.axvline(x=mach_i, color='green', linestyle='--')
     ax.axhline(y=drag_i, color='green', linestyle='--')
+plt.title('Longitudinal forces as a function of Mach number')
+plt.legend()
 plt.show()
-print(mach_i)
+print('Question 7')
+print(f'Mach Number : {mach_i:0.2f} ')
+print(f'Gradient : {gamma_i:0.2f} deg')
