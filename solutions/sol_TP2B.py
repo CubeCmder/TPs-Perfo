@@ -35,7 +35,7 @@ if __name__ == '__main__':
     aircraft = Aircraft()
 
     sol = openpyxl.load_workbook(
-        r'C:\Users\Admin\OneDrive - polymtl.ca\Poly & School\POLY\2023 Automne\Performance\TPs\solutions\AER8375_TP2B_sol.xlsx')[
+        r'C:\Users\hugoa\OneDrive - polymtl.ca\Ecole\A2023\AER8375\TPs-Perfo\solutions\AER8375_TP2B_sol.xlsx')[
         'Sheet1']
     cases = {}
 

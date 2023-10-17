@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     aircraft = Aircraft()
 
-    sol = openpyxl.load_workbook(r'C:\Users\Admin\OneDrive - polymtl.ca\Poly & School\POLY\2023 Automne\Performance\TPs\solutions\AER8375_TP2A_sol.xlsx')['Sheet1']
+    sol = openpyxl.load_workbook(r'C:\Users\hugoa\OneDrive - polymtl.ca\Ecole\A2023\AER8375\TPs-Perfo\solutions\AER8375_TP2A_sol.xlsx')['Sheet1']
     cases = {}
 
     for row in sol.iter_rows(min_row=15, max_row=22, min_col=1, max_col=9, values_only=True):
