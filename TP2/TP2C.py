@@ -6,67 +6,6 @@ from atmos import pressure_from_alt, temp_from_alt
 from climb_descent import get_gradient, get_AF
 from velocities import get_dynamic_pressure
 
-#### QUESTION 2
-"""
-Considérez le cas suivant :
-
- Flap 45 / LG down
- AOA = 10.20 deg
- Cl=1.65
- MAC=8.286 ft
- Lt=40.56 ft
-
-En utilisant les données avions (fichier « donnees_avion_AER8375 ») et les données ci-dessus, 
-calculer la position du centre de gravité (%MAC) ?"""
-
-flap_angle = 45
-lg_up = False
-AoA = 10.2
-CL_act = 1.65
-MAC = 8.286
-Lt = 40.56
-
-aircraft = Aircraft()
-aircraft.mac = MAC
-aircraft.lt = Lt
-
-cg_act = aircraft.get_cg_from_CL(CL_act, AoA, flap_angle, lg_up)
-print('Question 2')
-print(f'Position cg actuel : {cg_act:0.2f} %MAC')
-
-
-#### QUESTION 3
-"""
-Considérez le cas suivant :
-
- Flap 0
- CG=25 % (%MAC)
- Cl_sw=1.57 (Pour un CG à 25%)
- MAC=8.286 ft
- Lt=40.56 ft
-
-En utilisant les données avions (fichier « donnees_avion_AER8375 ») et les données ci-dessus, déterminer 
-l’angle d’attaque à partir duquel le coefficient de portance cesse d’augmenter avec une augmentation de 
-l’angle d’attaque (CL_alpha négatif) ? Que se passe-t-il à partir de cette valeur ? Pour simplifier les 
-calculs de cette question, vous pouvez supposer que la relation entre le coefficient de portance et 
-l’angle d’attaque demeure linéaire jusqu’à cette valeur, même si cette hypothèse n’est pas valide dans la réalité.
-"""
-
-flap_angle = 0
-cg = 0.25
-CL_sw_cg25 = 1.57
-
-aoa_SW = aircraft.fuse_AOA_SW[flap_angle]  # @ cg=9%
-CL_sw_cg9 = CL_sw_cg25*(1 + aircraft.mac / aircraft.lt * (aircraft.FWDCG - cg))
-CL_0 = CL_sw_cg9 - aoa_SW*0.1
-# CL_0 ~ 0.05 -> LG_UP = True
-lg_up = True
-CL_MAX = aircraft.get_CL_max(flap_angle, lg_up)
-AoA_MAX = (CL_MAX-CL_0)/0.1
-print('Question 3')
-print(f'Maximum angle of attack : {AoA_MAX:0.2f} deg')
-
-
 #### QUESTION 5
 """
 Considérez une montée sous les conditions suivantes :

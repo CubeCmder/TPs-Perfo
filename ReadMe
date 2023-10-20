@@ -1,15 +1,25 @@
 AER8375 Analyse et performance des avions
 
 How to use:
-For TP1C, run program TP1C_Hugo. This program imports and utilise atmos.py and velocities.py.
+For TP1C, run program TP1C_Hugo or TP1C_Ced. This program imports and utilise atmos.py and velocities.py.
 
-TP1A:
-atmos.py contains function that allows us to model the atmosphere and therefore obtain different parameters from
+For TP2C, run program TP2C (present in the TP2 folder). This program imports and utilise atmos.py, velocities.py, aircraft.py and
+climb_descent.py.
+
+atmos.py:
+Contains function that allows us to model the atmosphere and therefore obtain different parameters from
 a set of input that depends on the users need.
 
-TP1B:
-velocities.py contains function that allows us to convert and calculate the speeds of the aircraft. Once again, inputs
+velocities.py:
+Contains function that allows us to convert and calculate the speeds of the aircraft. Once again, inputs
 are based on users need.
 
-The end. 
+aircraft.py:
+Class, containing attributes of the aircraft given in données avion. This class also contains function to calculate
+coefficients, forces, NZ, etc. This class help us define the aircraft and the force applied to it.
+
+climb_descent.py :
+Contains function needed to define climb and descent parameters from a set of input that depends on the users need.
+
+The end.
 Thank you.
