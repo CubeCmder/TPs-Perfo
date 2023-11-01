@@ -4,6 +4,8 @@ import warnings
 from velocities import *
 from atmos import *
 from units import knots2fps
+
+
 def climb_descent(aircraft, R, alt, T, W, RM, n_engines, aoa, flap, landing_gear, cg, CAS=None, Mach=None):
     """
     Function that returns all information about climb or descent phase of flight
@@ -51,39 +53,44 @@ def climb_descent(aircraft, R, alt, T, W, RM, n_engines, aoa, flap, landing_gear
     AF = get_AF(R, alt, Mach, T, T_std)
     ROC = get_ROC(V, Thrust, D, W, AF)
     ROCp = get_ROCp(ROC, T, T_std)
-    gradient = get_gradient(AF,Thrust,W,CD,CL)
+    gradient = get_gradient(AF, Thrust, W, CD, CL)
 
     a_xfp = get_accel_xfp(Thrust, W, CD, CL, gradient)
 
     return gradient, ROC, ROCp, AF, a_xfp
 
-def get_gradient(AF,T,W,CD,CL):
-    gradient = (T/W-CD/CL)/(1+AF)
+
+def get_gradient(AF, T, W, CD, CL):
+    gradient = (T / W - CD / CL) / (1 + AF)
     return gradient
 
-def get_AF(R, alt, Mach, t , t_std):
-    phi = (1/0.7/Mach**2)*((1+0.2*Mach**2)**3.5-1)/((1+0.2*Mach**2)**2.5)
 
-    if alt<36089:
-        if R == "CAS" :
-            AF = 0.7 * Mach**2 * (phi-0.190263*(t_std/t))
+def get_AF(R, alt, Mach, t, t_std):
+    phi = (1 / 0.7 / Mach ** 2) * ((1 + 0.2 * Mach ** 2) ** 3.5 - 1) / ((1 + 0.2 * Mach ** 2) ** 2.5)
+
+    if alt < 36089:
+        if R == "CAS":
+            AF = 0.7 * Mach ** 2 * (phi - 0.190263 * (t_std / t))
         elif R == "Mach":
-            AF = -0.133184*Mach**2 * (t_std/t)
+            AF = -0.133184 * Mach ** 2 * (t_std / t)
     else:
         if R == "CAS":
-            AF = 0.7*Mach**2 * phi
+            AF = 0.7 * Mach ** 2 * phi
         elif R == "Mach":
             AF = 0
 
     return AF
 
-def get_ROC(V, T, D, W, AF):
-    ROC = ((V*(T-D))/W)/(1+AF)
-    return ROC*60
 
-def get_ROCp(ROC,t ,t_std):
-    ROCp = ROC*(t_std/t)
+def get_ROC(V, T, D, W, AF):
+    ROC = ((V * (T - D)) / W) / (1 + AF)
+    return ROC * 60
+
+
+def get_ROCp(ROC, t, t_std):
+    ROCp = ROC * (t_std / t)
     return ROCp
+
 
 def get_accel_xfp(T, W, CD, CL, gamma):
     """
@@ -96,5 +103,5 @@ def get_accel_xfp(T, W, CD, CL, gamma):
     :param gamma: Climb gradient
     :return: accel
     """
-    accel = (T/W - CD/CL) - gamma
+    accel = (T / W - CD / CL) - gamma
     return accel

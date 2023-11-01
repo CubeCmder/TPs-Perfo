@@ -5,6 +5,7 @@ from scipy.interpolate import interp1d
 try:
     from Constantes import *
     from Transformations import *
+    from Atmosphere import *
 except:
     pass
 
@@ -382,7 +383,7 @@ def conditions_forces(Vitesse, Choice_vitesse, Choice_regime, Choice_regime_clim
     phi = (1/(0.7*mach**2))*((1+0.2*mach**2)**3.5-1)/((1+0.2*mach**2)**2.5)
     
     # Calcul de la temperature standard
-    T_std = theta*(cst.T_0) # K
+    T_std = conditions_atm(hp, 0, "ISA")[0] # K
     
     # Calcul du facteur d'acceleration
     if Choice_regime_climb == "Mach_constant":
@@ -409,4 +410,4 @@ def conditions_forces(Vitesse, Choice_vitesse, Choice_regime, Choice_regime_clim
     # Calcul de l'acceleration selon l'axe de la trajectoire de vol (Module 5 - page)
     axfp = (T_lbs/W - CD/CL) - gamma_montee
  
-    return CD, CL, L_lbs, CL/CD, CDp, q*S*CDp, CDi, q*S*CDp, CDcomp, q*S*CDcomp, CDcntl, q*S*CDcntl, CDwm, q*S*CDwm, T_lbs, D_lbs, aoa, Nzsw, Phisw, Nzbuffet, gamma_montee*100, taux_montee, taux_montee_pression, FA, axfp
+    return CD, CL, L_lbs, CL/CD, CDp, q*S*CDp, CDi, q*S*CDp, CDcomp, q*S*CDcomp, CDcntl, q*S*CDcntl, CDwm, q*S*CDwm, T_lbs, D_lbs, aoa, Nzsw, Phisw, Nzbuffet, gamma_montee*100, taux_montee, taux_montee_pression, FA, axfp, V, mach, V_c

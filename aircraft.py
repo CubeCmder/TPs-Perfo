@@ -667,3 +667,16 @@ class Aircraft():
         mach = np.sqrt((weight * Nz / delta) / 1481.3 / CL / self.S)
         return mach
 
+    def get_fuel_burn_rate(self, p, thrust):
+        """
+        Fuel burn rate in lbs/s.
+
+        :param p:
+        :param thrust:
+        :return:
+        """
+
+        SFC = self.get_SFC(p)
+
+        return SFC*thrust/60/60
+
