@@ -410,4 +410,4 @@ def conditions_forces(Vitesse, Choice_vitesse, Choice_regime, Choice_regime_clim
     # Calcul de l'acceleration selon l'axe de la trajectoire de vol (Module 5 - page)
     axfp = (T_lbs/W - CD/CL) - gamma_montee
  
-    return CD, CL, L_lbs, CL/CD, CDp, q*S*CDp, CDi, q*S*CDp, CDcomp, q*S*CDcomp, CDcntl, q*S*CDcntl, CDwm, q*S*CDwm, T_lbs, D_lbs, aoa, Nzsw, Phisw, Nzbuffet, gamma_montee*100, taux_montee, taux_montee_pression, FA, axfp, V, mach, V_c
+    return CD, CL, L_lbs, CL/CD, CDp, q*S*CDp, CDi, q*S*CDp, CDcomp, q*S*CDcomp, CDcntl, q*S*CDcntl, CDwm, q*S*CDwm, T_lbs, D_lbs, aoa, Nzsw, Phisw, Nzbuffet, gamma_montee*100, taux_montee, taux_montee_pression, FA, axfp, V

@@ -2,8 +2,10 @@ from typing import Any
 import numpy as np
 import warnings
 
-from velocities import get_dynamic_pressure
-from atmos import get_delta_ISA, P_0
+from velocities import *
+from atmos import *
+from units import *
+from climb_descent import *
 
 
 class Aircraft():
@@ -20,7 +22,7 @@ class Aircraft():
         self.MXFUEL = 15000.0
 
         # CG
-        self.FWDCG = 9.0/100
+        self.FWDCG = 9.0 / 100
 
         # AIRCRAFT GEOMETRY
         self.S = 520.0  # Wing area (ft^2)
@@ -49,8 +51,6 @@ class Aircraft():
 
         # AIRCRAFT ENGINE DATA
         self.n_engines = 2  # number of engines
-
-
 
         #                **********************
         #                     Speed limits
@@ -206,8 +206,8 @@ class Aircraft():
         :return NZ_buffet: Load factor buffet start
         """
 
-        CL_buffet = self.CL_at_buffet_vs_mach(mach)/(1 + self.mac/self.lt*(self.FWDCG-cg))
-        return CL_buffet/CL
+        CL_buffet = self.CL_at_buffet_vs_mach(mach) / (1 + self.mac / self.lt * (self.FWDCG - cg))
+        return CL_buffet / CL
 
     def lift_curve_aoa(self, aoa, flap_angle, cg_act=None, gear_up=True):
         """
@@ -238,7 +238,7 @@ class Aircraft():
         CL_fwd = CL_0 + 0.10 * aoa
 
         if cg_act is not None:
-            return CL_fwd/(1 + self.mac/self.lt*(self.FWDCG-cg_act))
+            return CL_fwd / (1 + self.mac / self.lt * (self.FWDCG - cg_act))
         else:
             return CL_fwd
 
@@ -268,9 +268,9 @@ class Aircraft():
         if not gear_up:
             CL_0 -= 0.05
 
-        CL_fwd = CL*(1 + self.mac / self.lt * (self.FWDCG - cg_act))
+        CL_fwd = CL * (1 + self.mac / self.lt * (self.FWDCG - cg_act))
 
-        return (CL_fwd-CL_0)/0.1
+        return (CL_fwd - CL_0) / 0.1
 
     def drag_curve_aoa(self, aoa, flap_angle, gear_up: bool):
         """
@@ -417,14 +417,13 @@ class Aircraft():
 
         CL_sw = self.get_lift_coefficient(Nz=1, aoa=aoa_SW, flap_angle=flap_angle, cg=cg, gear_up=gear_up)
         q = get_dynamic_pressure(p, mach=mach)
-        L = q*self.S*CL_sw
-        NZ_sw = L/weight
+        L = q * self.S * CL_sw
+        NZ_sw = L / weight
 
         if not return_phi:
             return NZ_sw
         else:
             return self.get_phi(NZ_sw)
-
 
     def get_lift_coefficient(self, **kwargs):
         """
@@ -466,11 +465,11 @@ class Aircraft():
 
         elif all(key in kwargs for key in ['weight', 'q', 'S_ref']):
             CL = Nz * kwargs['weight'] / (kwargs['q'] * kwargs['S_ref'])
-            #CL = CL/(1+self.mac/self.lt *(self.FWDCG-kwargs['cg']))
+            # CL = CL/(1+self.mac/self.lt *(self.FWDCG-kwargs['cg']))
         else:
             raise Exception('Ambiguous or erroneous function arguments.')
 
-        #if all(key in kwargs for key in ['cg']):
+        # if all(key in kwargs for key in ['cg']):
         #    CL = CL#*(1+self.mac/self.lt *(self.FWDCG-kwargs['cg']))
 
         return CL
@@ -577,13 +576,14 @@ class Aircraft():
 
         dISA = get_delta_ISA(PALT, T)
 
+        RM = RM.upper()
         if RM == 'MTO' or RM == 'GA' or RM == 'MCT':
             # MTOFN = Maximum Take-Off (MTO) thrust per engine (lb) (flat rated to ISA+15) (valid up to ISA+15)
             # Note: Above ISA+15, MTOFN reduces by 1 % per degree C
             T_OE = 8775 - 0.1915 * PALT - (8505 - 0.195 * PALT) * M
 
             if dISA > 15:
-                T_OE *= (1-1/100*(dISA-15))
+                T_OE *= (1 - 1 / 100 * (dISA - 15))
 
             if RM == 'MCT':
                 T_OE *= 0.90
@@ -594,12 +594,12 @@ class Aircraft():
             T_OE = 5690 - 0.0968 * PALT - (1813 - 0.0333 * PALT) * M
 
             if dISA > 10:
-                T_OE *= (1-1/100*(dISA-10))
+                T_OE *= (1 - 1 / 100 * (dISA - 10))
 
             if RM == 'MCR':
                 T_OE *= 0.98
 
-        elif RM == 'ID':
+        elif RM == 'ID' or RM == 'IDLE':
             T_OE = 600 - 1000 * M  # Idle thrust per engine (lb) (independent of altitude & temperature)
         elif RM == 'MXR':
             T_OE = -1300 - 12000 * M  # Max. Reverse thrust per engine (lb) (indep. of altitude & temperature)
@@ -630,14 +630,14 @@ class Aircraft():
         :return: Nz
         """
 
-        return L/W
+        return L / W
 
-    def get_NZ_sw(self, W, flap_angle, acg_act, gear_up,p,M=None):
+    def get_NZ_sw(self, W, flap_angle, acg_act, gear_up, p, M=None):
         aoa_SW = self.fuse_AOA_SW[flap_angle]
-        CL_sw = self.lift_curve_aoa(aoa_SW,flap_angle,acg_act,gear_up)
-        qp = get_dynamic_pressure(p,mach=M)
-        L_stall = CL_sw*qp*self.S
-        NZ_sw = L_stall/W
+        CL_sw = self.lift_curve_aoa(aoa_SW, flap_angle, acg_act, gear_up)
+        qp = get_dynamic_pressure(p, mach=M)
+        L_stall = CL_sw * qp * self.S
+        NZ_sw = L_stall / W
         if NZ_sw:
             return NZ_sw
         else:
@@ -650,7 +650,7 @@ class Aircraft():
         :return: phi: Bank angle
         """
 
-        return np.degrees(np.arccos(1/NZ))
+        return np.degrees(np.arccos(1 / NZ))
 
     def get_cg_from_CL(self, CL_act, AoA, flap_angle, gear_up):
 
@@ -658,7 +658,7 @@ class Aircraft():
 
         # cg_act = (1-CL_fwd/CL_act)*lt/mac
 
-        return (1 - CL_fwd/CL_act)*self.lt/self.mac+self.FWDCG
+        return (1 - CL_fwd / CL_act) * self.lt / self.mac + self.FWDCG
 
     def get_mach_from_VSR(self, p, weight, vsr_mult, Nz, flap_angle, gear_up):
 
@@ -667,7 +667,7 @@ class Aircraft():
         mach = np.sqrt((weight * Nz / delta) / 1481.3 / CL / self.S)
         return mach
 
-    def get_fuel_burn_rate(self, p, thrust):
+    def get_fuel_burn_rate(self, hp, thrust):
         """
         Fuel burn rate in lbs/s.
 
@@ -676,7 +676,165 @@ class Aircraft():
         :return:
         """
 
-        SFC = self.get_SFC(p)
+        SFC = self.get_SFC(hp)
+        if thrust < 0:
+            thrust = 1200
 
-        return SFC*thrust/60/60
+        return SFC * thrust / 60 / 60
 
+    def mission_performance_climb_descent(self, hpi, hpf, dISA, Vwind, V_CAS_cst, Mach_cst, Wi, Wf, RM, int_hp_resol=50,
+                                          OEI_tag=False):
+
+        cg = 0.09
+
+        if OEI_tag:
+            n_engines = 1
+        else:
+            n_engines = 2
+
+        # identify the situation
+        isAscent = True if hpi < hpf else False
+
+        # in case of descent, integration interval is negative
+        if not isAscent:
+            int_hp_resol *= -1
+
+        # Calculate the integration intervals
+        int_steps = np.arange(start=hpi, stop=hpf + int_hp_resol, step=int_hp_resol)
+
+        # Last altitude needs to be adjusted
+        if int_steps[-1] != hpf:
+            int_steps[-1] = hpf
+
+        # This accounts for discontinuities in the ROC based on regulatory restrictions under 10 000 ft
+        if hpi <= 10000 <= hpf:  # Account for a discontinuity at 10000 ft
+            if 10000 not in int_steps:
+                int_steps = np.insert(int_steps, min(np.where(10000 < int_steps))[0], [10000, 10000])
+            else:
+                int_steps = np.insert(int_steps, min(np.where(10000 == int_steps))[0], [10000])
+        elif hpi >= 10000 >= hpf and 10000 not in int_steps:  # Account for a discontinuity at 10000 ft
+            if 10000 not in int_steps:
+                int_steps = np.insert(int_steps, max(np.where(10000 < int_steps))[0], [10000, 10000])
+            else:
+                int_steps = np.insert(int_steps, max(np.where(10000 == int_steps))[0], [10000])
+
+        # Calculate transition altitude
+        Ps_tr = get_impact_pressure(P_0, V_CAS_cst / a0) / ((1 + 0.2 * Mach_cst ** 2) ** 3.5 - 1)
+        hp_tr = get_pressure_altitude(Ps_tr)
+        hp_tr = round(hp_tr / 100) * 100
+
+        # This accounts for discontinuities in the ROC based on transition from cst CAS climb to cst Mach climb
+        if hpi < hp_tr < hpf and hp_tr not in int_steps:  # Account for a discontinuity at 10000 ft
+            int_steps = np.insert(int_steps, min(np.where(hp_tr < int_steps))[0], hp_tr)
+        elif hpi > hp_tr > hpf and hp_tr not in int_steps:  # Account for a discontinuity at 10000 ft
+            int_steps = np.insert(int_steps, max(np.where(hp_tr < int_steps))[0], hp_tr)
+
+        while True:
+            Wfuel = 0
+            t_total = 0
+            dist_total = 0
+            W1 = Wi
+            W2 = Wi
+
+            Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi = [0, 0, 0, 0, 0, 0]
+
+            for idx, hp1 in enumerate(int_steps[:-1]):
+                hp2 = int_steps[idx + 1]
+                hp_moy = hp2 / 2 + hp1 / 2
+
+                p = pressure_from_alt(hp_moy)
+                T_ISA = temp_from_alt(hp_moy)
+                T_case = T_ISA + dISA
+
+                delta_hp = hp2 - hp1
+                delta_hg = delta_hp * (T_case / T_ISA)
+                W_avg = (W2 + W1) / 2
+
+                if hp1 == 10000:  # Acceleration Segment
+                    V1 = 250
+                    V2 = V_CAS_cst
+                    V_CAS_AVG = (V1 + V2) / 2
+
+                    Mach1 = get_mach_from_calibrated_airspeed(p, V1)
+                    Mach2 = get_mach_from_calibrated_airspeed(p, V2)
+                    Mach = get_mach_from_calibrated_airspeed(p, V_CAS_AVG)
+                    q = get_dynamic_pressure(p, T_case, mach=Mach)
+
+                    Thrust = self.get_thrust(RM, hp_moy, Mach, T_case, n_engines=n_engines)
+                    CL = self.get_lift_coefficient(Nz=1, weight=W_avg,
+                                                   q=get_dynamic_pressure(p, T_case, mach=Mach),
+                                                   S_ref=self.S)
+                    CD = self.get_drag_coefficient(CL, 0, Mach, LDG=0, NZ=1, OEI=OEI_tag, q=q,
+                                                   thrust=Thrust)['CDtot']
+                    D = q * CD * self.S
+
+                    Acc = (Thrust - D) / W_avg * g
+                    AccTASAvg = get_true_airspeed(p, Mach, temp=T_case, knots=False)
+                    AccTime = abs((get_true_airspeed(p, Mach2, temp=T_case, knots=False) - get_true_airspeed(p, Mach1,
+                                                                                                             temp=T_case,
+                                                                                                             knots=False)) / Acc)
+                    AccDist = AccTime * (AccTASAvg + knots2fps(Vwind)) / 6076
+                    fuel_burn_rate = self.get_fuel_burn_rate(hp_moy, Thrust)
+                    AccFuel = fuel_burn_rate * AccTime
+                    AccWfi = Wi
+
+                    fuel_burned_idx = AccFuel
+                    d_time_idx = AccTime
+                    d_dist_idx = AccDist
+
+                elif hp1 < hp_tr:
+                    if hp1 < 10000:
+                        V_CAS = 250
+                    else:
+                        V_CAS = V_CAS_cst
+                    Mach = get_mach_from_calibrated_airspeed(p, V_CAS)
+                    CL = self.get_lift_coefficient(Nz=1, weight=W_avg,
+                                                   q=get_dynamic_pressure(p, T_case, mach=Mach),
+                                                   S_ref=self.S)  # Not corrected for CG
+                    AoA = self.get_aoa(CL, 0, cg, True)
+                    gradient, ROC, ROCp, AF, a_xfp = climb_descent(self, 'CAS', hp_moy, T_case, W_avg,
+                                                                   RM, n_engines, AoA, 0, True, cg,
+                                                                   CAS=V_CAS)
+                    V_TAS = get_true_airspeed(p, Mach, temp=T_case, knots=False)
+
+                    d_time_idx = delta_hg / (ROC / 60)
+                    d_dist_idx = (V_TAS + knots2fps(Vwind)) * d_time_idx
+                    thrust = self.get_thrust(RM.split()[0], hp_moy, Mach, T_case, n_engines=n_engines)
+                    fuel_burn_rate = self.get_fuel_burn_rate(hp_moy, thrust)
+                    fuel_burned_idx = fuel_burn_rate * d_time_idx
+
+                else:
+                    Mach = Mach_cst
+                    CL = self.get_lift_coefficient(Nz=1, weight=W_avg,
+                                                   q=get_dynamic_pressure(p, T_case, mach=Mach),
+                                                   S_ref=self.S)  # Not corrected for CG
+                    AoA = self.get_aoa(CL, 0, cg, True)
+                    gradient, ROC, ROCp, AF, a_xfp = climb_descent(self, 'Mach', hp_moy, T_case, W_avg,
+                                                                   RM, n_engines, AoA, 0, True, cg,
+                                                                   Mach=Mach)
+
+                    V_TAS = get_true_airspeed(p, Mach, temp=T_case, knots=False)
+
+                    d_time_idx = delta_hg / (ROC / 60)
+                    d_dist_idx = (V_TAS + knots2fps(Vwind)) * d_time_idx
+                    thrust = self.get_thrust(RM.split()[0], hp_moy, Mach, T_case, n_engines=n_engines)
+                    fuel_burn_rate = self.get_fuel_burn_rate(hp_moy, thrust)
+                    fuel_burned_idx = fuel_burn_rate * d_time_idx
+
+                if isAscent and ROC < 100:
+                    break
+
+                Wfuel += fuel_burned_idx
+                t_total += d_time_idx
+                dist_total += d_dist_idx
+
+                W1 = W2
+                W2 = W1 - fuel_burned_idx
+
+            if abs((Wi - Wf) - Wfuel) <= 20:
+                Wf = Wi - Wfuel
+                break
+            else:
+                Wf = Wi - Wfuel
+
+        return t_total, dist_total, Wi - Wf, hp_tr, Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi
