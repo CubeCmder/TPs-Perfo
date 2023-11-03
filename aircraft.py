@@ -2,6 +2,7 @@ from typing import Any
 import numpy as np
 import warnings
 
+import atmos
 from velocities import *
 from atmos import *
 from units import *
@@ -561,6 +562,60 @@ class Aircraft():
 
         return drag
 
+    def get_minimum_drag_speed(self, W, rho):
+        """
+        :param:
+        :return:
+        """
+        CDp = self.CD_profile(0)
+        K = self._induced_drag_efficiency_factor(0)
+
+        CL = np.sqrt(CDp/K)
+
+        V_md = np.sqrt(W/(0.5*rho*CL*self.S))/1.68781
+
+        return V_md
+
+    def get_max_range_cruise_speed(self, W, rho):
+        """
+        :param:
+        :return:
+        """
+        CDp = self.CD_profile(0)
+        K = self._induced_drag_efficiency_factor(0)
+
+        CL = np.sqrt(CDp/(3*K))
+
+        V_MRC = np.sqrt(W/(0.5*rho*CL*self.S))/1.68781
+
+        return V_MRC
+
+    def get_long_range_cruise_mach(self, W, T, rho, P, hp):
+        """
+        :param:
+        :return:
+        """
+        Mach_v = np.linspace(0.45, 0.8, 100)
+        SAR_v = np.zeros(len(Mach_v))
+        for i in range(0, len(Mach_v)):
+            q = get_dynamic_pressure(P, T=T, mach=Mach_v[i])
+            L = W
+            CL = self.get_lift_coefficient(Nz=1, weight=W, q=q, S_ref=self.S)
+            CD = self.get_drag_coefficient(CL=CL, flap_angle=0, mach=Mach_v[i])['CDtot']
+            D = CD * q * self.S
+            SFC = self.get_SFC(hp)
+
+            SAR_v[i] = ((a0 * np.sqrt(T / T_0)) / SFC) * (Mach_v[i] * L / D) * (1 / W)
+
+        SAR_MRC = max(SAR_v)
+        SAR_LRC = 0.99*SAR_MRC
+        SAR_v_cut = SAR_v[np.where(SAR_v == SAR_MRC)[0][0]:]
+        Mach_v_cut = Mach_v[np.where(SAR_v == SAR_MRC)[0][0]:]
+
+        Mach_LRC = np.interp(SAR_LRC, SAR_v_cut, Mach_v_cut)
+
+        return Mach_LRC
+
     def get_thrust(self, RM, PALT, M, T, n_engines=None):
 
         """
@@ -838,3 +893,70 @@ class Aircraft():
                 Wf = Wi - Wfuel
 
         return t_total, dist_total, Wi - Wf, hp_tr, Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi
+
+    def cruise(self, hp, dISA, Vwind, V, V_type, W, OEI_tag=False):
+        """
+        Paramêtre de cruise.
+
+        :param hp: Altitude(ft)
+        :param dISA: Delta ISA (C)
+        :param Vwind: Vitesse vend (kts)
+        :param V: Aircraft speed [-, mach number, -, -]
+        :param V_type: ["Vmd", "Mach", "MRC", "LRC"] [Min drag, mach number cste, long range cruise, max cruise speed]
+        :param W: weight (lb)
+        :return KCAS: Vitesse CAS en kts
+        :return V_g: vitesse sol kts
+        :return SAR: Distance aerienne fanchissable specifique (nm/lb)
+        :return SR: Distance fanchissable specifique (nm/lb)
+        :return Wf: Debit massique total de carburant (lb/hr)
+        """
+        P, rho, T = get_atmos_from_dISA(hp, dISA)
+
+        if V_type == "Vmd":
+            V_md = self.get_minimum_drag_speed(W, rho)
+            V = V_md
+            Mach = get_mach(v=V_md,temp=T)
+        elif V_type == "Mach":
+            Mach = V
+            V = get_true_airspeed(p=P,mach=Mach,temp=T)
+        elif V_type == "MRC":
+            V_MRC = self.get_max_range_cruise_speed(W, rho)
+            V = V_MRC
+            Mach = get_mach(v=V_MRC, temp=T)
+        elif V_type == "LRC":
+            Mach = self.get_long_range_cruise_mach(W, T, rho, P, hp)
+            V = get_true_airspeed(p=P,mach=Mach,temp=T)
+
+
+        q = get_dynamic_pressure(P,T=T,mach=Mach)
+
+        L = W
+        CL = self.get_lift_coefficient(Nz=1, weight=W,q=q,S_ref=self.S)
+        CD = self.get_drag_coefficient(CL=CL, flap_angle=0,mach=Mach)['CDtot']
+        D = CD*q*self.S
+        thrust = D
+        Wf = self.get_fuel_burn_rate(hp, thrust)
+        SFC = self.get_SFC(hp)
+
+        SAR = ((a0*np.sqrt(T/T_0))/SFC)*(Mach*L/D)*(1/W)
+        V_g = V + Vwind
+        SR = SAR*(V_g/V)
+
+        KCAS = get_calibrated_airspeed(p=P,mach=Mach)
+
+        #Perform checks
+        if thrust > self.get_thrust('MCR', PALT=hp, M=Mach, T=T, n_engines=None):
+            raise Exception('Thrust d/passe MCR')
+        #elif get_ROC(V=275, T=T, D=D, W=W, AF=get_AF("CAS", hp, 0.74, T, T-dISA)) < 300:
+        #    raise Exception('Roc sous 300 ft/min')
+        elif KCAS > self.V_MO or Mach > self.M_MO:
+            raise Exception('Vitesse max depasse')
+        #elif V < self.get_minimum_drag_speed(W, rho):
+         #   raise Exception('En dessous de vitesse min drag')
+        elif hp > 41000 or hp <2000:
+            raise Exception('Altitude hors des bornes de 2000 a 41000 pi')
+        elif OEI_tag == True:
+            raise Exception('AEO seulement')
+
+        return KCAS, V_g, Mach, SAR, SR, Wf
+
