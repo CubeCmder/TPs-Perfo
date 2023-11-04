@@ -595,7 +595,7 @@ class Aircraft():
         :param:
         :return:
         """
-        Mach_v = np.linspace(0.45, 0.8, 100)
+        Mach_v = np.linspace(0.8, 0.45, 100)
         SAR_v = np.zeros(len(Mach_v))
         for i in range(0, len(Mach_v)):
             q = get_dynamic_pressure(P, T=T, mach=Mach_v[i])
@@ -609,10 +609,10 @@ class Aircraft():
 
         SAR_MRC = max(SAR_v)
         SAR_LRC = 0.99*SAR_MRC
-        SAR_v_cut = SAR_v[np.where(SAR_v == SAR_MRC)[0][0]:]
-        Mach_v_cut = Mach_v[np.where(SAR_v == SAR_MRC)[0][0]:]
+        SAR_v_cut = SAR_v[:np.where(SAR_v == SAR_MRC)[0][0]]
+        Mach_v_cut = Mach_v[:np.where(SAR_v == SAR_MRC)[0][0]]
 
-        Mach_LRC = np.interp(SAR_LRC, SAR_v_cut, Mach_v_cut)
+        Mach_LRC = np.interp(SAR_LRC,SAR_v_cut,Mach_v_cut)
 
         return Mach_LRC
 
@@ -945,18 +945,18 @@ class Aircraft():
         KCAS = get_calibrated_airspeed(p=P,mach=Mach)
 
         #Perform checks
-        if thrust > self.get_thrust('MCR', PALT=hp, M=Mach, T=T, n_engines=None):
-            raise Exception('Thrust d/passe MCR')
+        #if thrust > self.get_thrust('MCR', PALT=hp, M=Mach, T=T, n_engines=None):
+        #    raise Exception('Thrust d/passe MCR')
         #elif get_ROC(V=275, T=T, D=D, W=W, AF=get_AF("CAS", hp, 0.74, T, T-dISA)) < 300:
         #    raise Exception('Roc sous 300 ft/min')
-        elif KCAS > self.V_MO or Mach > self.M_MO:
-            raise Exception('Vitesse max depasse')
+        #elif KCAS > self.V_MO or Mach > self.M_MO:
+        #    raise Exception('Vitesse max depasse')
         #elif V < self.get_minimum_drag_speed(W, rho):
          #   raise Exception('En dessous de vitesse min drag')
-        elif hp > 41000 or hp <2000:
-            raise Exception('Altitude hors des bornes de 2000 a 41000 pi')
-        elif OEI_tag == True:
-            raise Exception('AEO seulement')
+        #elif hp > 41000 or hp <2000:
+        #    raise Exception('Altitude hors des bornes de 2000 a 41000 pi')
+        #elif OEI_tag == True:
+        #    raise Exception('AEO seulement')
 
-        return KCAS, V_g, Mach, SAR, SR, Wf
+        return KCAS, V_g, Mach, SAR, SR, Wf*3600
 
