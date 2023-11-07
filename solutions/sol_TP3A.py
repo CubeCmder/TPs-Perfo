@@ -13,7 +13,7 @@ from climb_descent import climb_descent
 def extract_float_from_string(s):
     # Define a regular expression pattern to match floating-point numbers
     # This pattern will match numbers with optional positive/negative signs, integer part, optional decimal point, and fractional part.
-    pattern = r"[-+]?\d*\.\d+|\d+\.\d*|\d+"
+    pattern = r'[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?'
 
     # Use the findall() function to extract all matching floats from the input string
     floats = re.findall(pattern, s)
@@ -140,7 +140,7 @@ if __name__ == '__main__':
         results[id]['Acc'] = Acc
         results[id]['AccTASAvg'] = AccTASAvg
         results[id]['AccTime'] = AccTime
-        results[id]['AccDist'] = AccDist
+        results[id]['AccDist'] = AccDist/ 6076
         results[id]['AccFuel'] = AccFuel
         results[id]['AccWfi'] = AccWfi
 

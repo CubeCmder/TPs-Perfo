@@ -367,6 +367,8 @@ class Aircraft():
         :param Nz: Load Factor
         :return:
         """
+        if phi == 0 or Nz ==1:
+            return 0
 
         if phi is None and Nz is not None:
             pass
@@ -663,6 +665,7 @@ class Aircraft():
         else:
             raise Exception('Unexpected engine rating')
 
+
         return T_OE * n_engines
 
     def get_SFC(self, PALT):
@@ -732,7 +735,7 @@ class Aircraft():
         """
 
         SFC = self.get_SFC(hp)
-        if thrust < 0:
+        if thrust <= 0:
             thrust = 1200
 
         return SFC * thrust / 60 / 60
@@ -740,7 +743,7 @@ class Aircraft():
     def mission_performance_climb_descent(self, hpi, hpf, dISA, Vwind, V_CAS_cst, Mach_cst, Wi, Wf, RM, int_hp_resol=50,
                                           OEI_tag=False):
 
-        cg = 0.09
+        cg = 0.25
 
         if OEI_tag:
             n_engines = 1
@@ -784,16 +787,20 @@ class Aircraft():
         elif hpi > hp_tr > hpf and hp_tr not in int_steps:  # Account for a discontinuity at 10000 ft
             int_steps = np.insert(int_steps, max(np.where(hp_tr < int_steps))[0], hp_tr)
 
-        while True:
-            Wfuel = 0
-            t_total = 0
-            dist_total = 0
-            W1 = Wi
-            W2 = Wi
 
-            Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi = [0, 0, 0, 0, 0, 0]
+        intermediate_data = {}
 
-            for idx, hp1 in enumerate(int_steps[:-1]):
+        #Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi = [0, 0, 0, 0, 0, 0]
+        W1 = Wi
+        W2 = W1
+        fuel_burned_idx = 1/100000
+        Wfuel = 0
+        t_total = 0
+        dist_total = 0
+        for idx, hp1 in enumerate(int_steps[:-1]):
+
+            while 1 - abs((W1-W2)/fuel_burned_idx) > 1/100:
+                W2 = W1 - fuel_burned_idx
                 hp2 = int_steps[idx + 1]
                 hp_moy = hp2 / 2 + hp1 / 2
 
@@ -801,7 +808,7 @@ class Aircraft():
                 T_ISA = temp_from_alt(hp_moy)
                 T_case = T_ISA + dISA
 
-                delta_hp = hp2 - hp1
+                delta_hp = abs(hp2 - hp1)
                 delta_hg = delta_hp * (T_case / T_ISA)
                 W_avg = (W2 + W1) / 2
 
@@ -828,71 +835,61 @@ class Aircraft():
                     AccTime = abs((get_true_airspeed(p, Mach2, temp=T_case, knots=False) - get_true_airspeed(p, Mach1,
                                                                                                              temp=T_case,
                                                                                                              knots=False)) / Acc)
-                    AccDist = AccTime * (AccTASAvg + knots2fps(Vwind)) / 6076
+                    AccDist = AccTime * (AccTASAvg + knots2fps(Vwind))
                     fuel_burn_rate = self.get_fuel_burn_rate(hp_moy, Thrust)
                     AccFuel = fuel_burn_rate * AccTime
-                    AccWfi = Wi
+                    AccWfi = W1
 
                     fuel_burned_idx = AccFuel
                     d_time_idx = AccTime
                     d_dist_idx = AccDist
 
-                elif hp1 < hp_tr:
-                    if hp1 < 10000:
-                        V_CAS = 250
-                    else:
-                        V_CAS = V_CAS_cst
-                    Mach = get_mach_from_calibrated_airspeed(p, V_CAS)
-                    CL = self.get_lift_coefficient(Nz=1, weight=W_avg,
-                                                   q=get_dynamic_pressure(p, T_case, mach=Mach),
-                                                   S_ref=self.S)  # Not corrected for CG
-                    AoA = self.get_aoa(CL, 0, cg, True)
-                    gradient, ROC, ROCp, AF, a_xfp = climb_descent(self, 'CAS', hp_moy, T_case, W_avg,
-                                                                   RM, n_engines, AoA, 0, True, cg,
-                                                                   CAS=V_CAS)
-                    V_TAS = get_true_airspeed(p, Mach, temp=T_case, knots=False)
-
-                    d_time_idx = delta_hg / (ROC / 60)
-                    d_dist_idx = (V_TAS + knots2fps(Vwind)) * d_time_idx
-                    thrust = self.get_thrust(RM.split()[0], hp_moy, Mach, T_case, n_engines=n_engines)
-                    fuel_burn_rate = self.get_fuel_burn_rate(hp_moy, thrust)
-                    fuel_burned_idx = fuel_burn_rate * d_time_idx
-
                 else:
-                    Mach = Mach_cst
-                    CL = self.get_lift_coefficient(Nz=1, weight=W_avg,
-                                                   q=get_dynamic_pressure(p, T_case, mach=Mach),
-                                                   S_ref=self.S)  # Not corrected for CG
-                    AoA = self.get_aoa(CL, 0, cg, True)
-                    gradient, ROC, ROCp, AF, a_xfp = climb_descent(self, 'Mach', hp_moy, T_case, W_avg,
-                                                                   RM, n_engines, AoA, 0, True, cg,
-                                                                   Mach=Mach)
+                    if hp1 < hp_tr:
+                        if hp1 < 10000:
+                            V_CAS = 250
+                        else:
+                            V_CAS = V_CAS_cst
+
+                        Mach = get_mach_from_calibrated_airspeed(p, V_CAS)
+                        RV = 'CAS'
+
+                    else:
+                        Mach = Mach_cst
+                        RV = 'Mach'
 
                     V_TAS = get_true_airspeed(p, Mach, temp=T_case, knots=False)
+                    q = get_dynamic_pressure(p, T_case, mach=Mach)
+                    CL = self.get_lift_coefficient(Nz=1, weight=W_avg, q=q, S_ref=self.S)
+                    Thrust = self.get_thrust(RM, hp_moy, Mach, T=T_case, n_engines=n_engines)
+                    D = q * self.get_drag_coefficient(CL, 0, Mach, LDG=0, NZ=1, OEI=OEI_tag, q=q,
+                                                      thrust=Thrust)['CDtot'] * self.S
+                    AF = get_AF(RV, hp_moy, Mach, T_case, T_ISA)
+
+                    if isAscent:
+                        ROC = get_ROC(V_TAS, Thrust, D, W_avg, AF)
+                    else:
+                        ROC = get_ROC(V_TAS, -Thrust, -D, W_avg, AF)
 
                     d_time_idx = delta_hg / (ROC / 60)
                     d_dist_idx = (V_TAS + knots2fps(Vwind)) * d_time_idx
-                    thrust = self.get_thrust(RM.split()[0], hp_moy, Mach, T_case, n_engines=n_engines)
-                    fuel_burn_rate = self.get_fuel_burn_rate(hp_moy, thrust)
+                    fuel_burn_rate = self.get_fuel_burn_rate(hp_moy, Thrust)
                     fuel_burned_idx = fuel_burn_rate * d_time_idx
 
-                if isAscent and ROC < 100:
-                    break
+            W1 = W2
 
-                Wfuel += fuel_burned_idx
-                t_total += d_time_idx
-                dist_total += d_dist_idx
 
-                W1 = W2
-                W2 = W1 - fuel_burned_idx
-
-            if abs((Wi - Wf) - Wfuel) <= 20:
-                Wf = Wi - Wfuel
+            if isAscent and ROC / (T_case / T_ISA) < 100:
                 break
-            else:
-                Wf = Wi - Wfuel
 
-        return t_total, dist_total, Wi - Wf, hp_tr, Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi
+            Wfuel += fuel_burned_idx
+            t_total += d_time_idx
+            dist_total += d_dist_idx
+
+
+        Wf = Wi - Wfuel
+
+        return t_total, dist_total, Wfuel, hp_tr, Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi
 
     def cruise(self, hp, dISA, Vwind, V, V_type, W, OEI_tag=False):
         """
