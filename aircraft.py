@@ -740,7 +740,7 @@ class Aircraft():
 
         return SFC * thrust / 60 / 60
 
-    def mission_performance_climb_descent(self, hpi, hpf, dISA, Vwind, V_CAS_cst, Mach_cst, Wi, Wf, RM, int_hp_resol=50,
+    def mission_performance_climb_descent(self, hpi, hpf, dISA, Vwind, V_CAS_cst, Mach_cst, Wi, RM, int_hp_resol=50,
                                           OEI_tag=False):
 
         cg = 0.25
@@ -955,5 +955,80 @@ class Aircraft():
         #elif OEI_tag == True:
         #    raise Exception('AEO seulement')
 
-        return KCAS, V_g, Mach, SAR, SR, Wf*3600
+        return KCAS, V_g, Mach, SAR, SR, Wf
 
+
+    def mission(self, hpi, hpf, hp_cruise, dISA, Vwind, V_CAS_cst, Mach_cruise, RM):
+        #Taxi
+        Wfuel_taxi = 500
+        TOW = self.MRW-Wfuel_taxi
+
+        #Takeoff
+        Wfuel_TO = 500
+        W_ETO = TOW-Wfuel_TO
+        hpETO = hpi+1500
+
+        #Climb
+        Climb = self.mission_performance_climb_descent(hpETO,hp_cruise,dISA,Vwind,V_CAS_cst,Mach_cruise,W_ETO,RM)
+        t_climb = Climb[0]
+        dist_climb = Climb[1]
+        Wfuel_climb = Climb[2]
+
+        hpTOC = hp_cruise
+        W_TOC = W_ETO-Wfuel_climb
+
+        #Descent
+        hpBAL = hpf+1500
+        Descent = self.mission_performance_climb_descent(hpTOC,hpBAL,dISA,Vwind,V_CAS_cst,Mach_cruise,W_TOC,RM)
+        Wfuel_descent = Descent[2]
+
+        #Landing
+        Wfuel_landing = 500
+        W_BAL = self.MLW+Wfuel_landing
+
+        #Cruise
+        W_TOD = W_BAL + Wfuel_descent
+        Wfuel_cruise_i = W_TOC - W_TOD
+        Cruise = self.cruise(hp_cruise,dISA,Vwind,Mach_cruise,'Mach',W_TOC)
+        Wfuel_rate_cruise = Cruise[5]
+        t_Cruise = Wfuel_cruise_i/Wfuel_rate_cruise
+
+        W = W_TOC
+        pas_t = 1
+
+        while abs(W_BAL + Wfuel_landing - self.MLW)>50:
+            #Cruise avec nouvel estimé
+            W = W_TOC
+            Wfuel_cruise = 0
+            for i in range(0,t_Cruise,pas_t):
+                Cruise = self.cruise(hp_cruise, dISA, Vwind, Mach_cruise, 'Mach', W)
+                Wfuel_rate = Cruise[5]
+                Wfuel = Wfuel_rate*pas_t
+                W = W_TOC-Wfuel
+                Wfuel_cruise = Wfuel_cruise+Wfuel
+
+            W_TOD = W_TOC-Wfuel_cruise
+
+            # Descent
+            hpBAL = hpf + 1500
+            Descent = self.mission_performance_climb_descent(hpTOC, hpBAL, dISA, Vwind, V_CAS_cst, Mach_cruise, W_TOC,                                              RM)
+            Wfuel_descent = Descent[2]
+
+            # Landing
+            Wfuel_landing = 500
+            W_BAL = self.MLW + Wfuel_landing
+
+            # Cruise
+            W_TOD = W_BAL + Wfuel_descent
+            Wfuel_cruise_i = W_TOC - W_TOD
+            Cruise = self.cruise(hp_cruise, dISA, Vwind, Mach_cruise, 'Mach', W_TOC)
+            Wfuel_rate_cruise = Cruise[5]
+            t_Cruise = Wfuel_cruise_i / Wfuel_rate_cruise
+
+        t_climb = Climb[0]
+        dist_climb = Climb[1]
+        Wfuel_climb = Climb[2]
+
+        t_climb = Descent[0]
+        dist_climb = Climb[1]
+        Wfuel_climb = Climb[2]
