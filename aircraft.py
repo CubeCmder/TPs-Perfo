@@ -797,9 +797,11 @@ class Aircraft():
         Wfuel = 0
         t_total = 0
         dist_total = 0
+        
         for idx, hp1 in enumerate(int_steps[:-1]):
 
             while 1 - abs((W1-W2)/fuel_burned_idx) > 1/100:
+
                 W2 = W1 - fuel_burned_idx
                 hp2 = int_steps[idx + 1]
                 hp_moy = hp2 / 2 + hp1 / 2
