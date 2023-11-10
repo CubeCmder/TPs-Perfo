@@ -939,19 +939,6 @@ class Aircraft():
         SR = SAR * (V_g / V)
 
         KCAS = get_calibrated_airspeed(p=P, mach=Mach)
-        # Perform checks
-        # if thrust > self.get_thrust('MCR', PALT=hp, M=Mach, T=T, n_engines=None):
-        #    raise Exception('Thrust d/passe MCR')
-        # elif get_ROC(V=275, T=T, D=D, W=W, AF=get_AF("CAS", hp, 0.74, T, T-dISA)) < 300:
-        #    raise Exception('Roc sous 300 ft/min')
-        # elif KCAS > self.V_MO or Mach > self.M_MO:
-        #    raise Exception('Vitesse max depasse')
-        # elif V < self.get_minimum_drag_speed(W, rho):
-        #   raise Exception('En dessous de vitesse min drag')
-        # elif hp > 41000 or hp <2000:
-        #    raise Exception('Altitude hors des bornes de 2000 a 41000 pi')
-        # elif OEI_tag == True:
-        #    raise Exception('AEO seulement')
 
         return KCAS, V_g, Mach, SAR, SR, Wf
 
@@ -978,10 +965,18 @@ class Aircraft():
         '''
 
         ZFW = self.OWE + dW_cargo  # Zero Fuel Weight - constant unless passengers are lost (or found?) along the way
+        LW = ZFW + W_fuel_reserve
         RW = ZFW + Wi_fuel  # Ramp weight - weight before taxi
 
         # Taxi
         TOW = RW - dW_fuel_to_taxi  # Takeoff Weight (after taxi)
+
+        if LW > self.MLW:
+            raise Exception('LW depasse MLW.')
+        elif RW > self.MRW:
+            raise Exception('RW depasse MRW.')
+        elif TOW > self.MTOW:
+            raise Exception('TOW depasse MTOW.')
 
         # Takeoff
         W_cli = TOW - dW_fuel_to  # Initial climb weight (after initial climb to 1500ft)
