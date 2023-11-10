@@ -367,7 +367,7 @@ class Aircraft():
         :param Nz: Load Factor
         :return:
         """
-        if phi == 0 or Nz ==1:
+        if phi == 0 or Nz == 1:
             return 0
 
         if phi is None and Nz is not None:
@@ -572,9 +572,9 @@ class Aircraft():
         CDp = self.CD_profile(0)
         K = self._induced_drag_efficiency_factor(0)
 
-        CL = np.sqrt(CDp/K)
+        CL = np.sqrt(CDp / K)
 
-        V_md = np.sqrt(W/(0.5*rho*CL*self.S))/1.68781
+        V_md = np.sqrt(W / (0.5 * rho * CL * self.S)) / 1.68781
 
         return V_md
 
@@ -586,9 +586,9 @@ class Aircraft():
         CDp = self.CD_profile(0)
         K = self._induced_drag_efficiency_factor(0)
 
-        CL = np.sqrt(CDp/(3*K))
+        CL = np.sqrt(CDp / (3 * K))
 
-        V_MRC = np.sqrt(W/(0.5*rho*CL*self.S))/1.68781
+        V_MRC = np.sqrt(W / (0.5 * rho * CL * self.S)) / 1.68781
 
         return V_MRC
 
@@ -610,11 +610,11 @@ class Aircraft():
             SAR_v[i] = ((a0 * np.sqrt(T / T_0)) / SFC) * (Mach_v[i] * L / D) * (1 / W)
 
         SAR_MRC = max(SAR_v)
-        SAR_LRC = 0.99*SAR_MRC
+        SAR_LRC = 0.99 * SAR_MRC
         SAR_v_cut = SAR_v[:np.where(SAR_v == SAR_MRC)[0][0]]
         Mach_v_cut = Mach_v[:np.where(SAR_v == SAR_MRC)[0][0]]
 
-        Mach_LRC = np.interp(SAR_LRC,SAR_v_cut,Mach_v_cut)
+        Mach_LRC = np.interp(SAR_LRC, SAR_v_cut, Mach_v_cut)
 
         return Mach_LRC
 
@@ -664,7 +664,6 @@ class Aircraft():
             T_OE = -160 - 3700 * M  # Idle Reverse thrust per engine (lb) (indep. of altitude & temperature)
         else:
             raise Exception('Unexpected engine rating')
-
 
         return T_OE * n_engines
 
@@ -741,7 +740,7 @@ class Aircraft():
         return SFC * thrust / 60 / 60
 
     def mission_performance_climb_descent(self, hpi, hpf, dISA, Vwind, V_CAS_cst, Mach_cst, Wi, RM, int_hp_resol=50,
-                                          OEI_tag=False):
+                                          OEI_tag=False, ROC_min=300):
 
         cg = 0.25
 
@@ -787,20 +786,19 @@ class Aircraft():
         elif hpi > hp_tr > hpf and hp_tr not in int_steps:  # Account for a discontinuity at 10000 ft
             int_steps = np.insert(int_steps, max(np.where(hp_tr < int_steps))[0], hp_tr)
 
-
         intermediate_data = {}
 
-        #Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi = [0, 0, 0, 0, 0, 0]
+        # Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi = [0, 0, 0, 0, 0, 0]
         W1 = Wi
         W2 = W1
-        fuel_burned_idx = 1/100000
+        fuel_burned_idx = 1 / 100000
         Wfuel = 0
         t_total = 0
         dist_total = 0
-        
+
         for idx, hp1 in enumerate(int_steps[:-1]):
 
-            while 1 - abs((W1-W2)/fuel_burned_idx) > 1/100:
+            while 1 - abs((W1 - W2) / fuel_burned_idx) > 1 / 100:
 
                 W2 = W1 - fuel_burned_idx
                 hp2 = int_steps[idx + 1]
@@ -880,20 +878,19 @@ class Aircraft():
 
             W1 = W2
 
-
-            if isAscent and ROC / (T_case / T_ISA) < 100:
+            if isAscent and ROC / (T_case / T_ISA) < ROC_min:
                 break
 
             Wfuel += fuel_burned_idx
             t_total += d_time_idx
             dist_total += d_dist_idx
 
-
         Wf = Wi - Wfuel
+        hpf = hp2
 
-        return t_total, dist_total, Wfuel, hp_tr, Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi
+        return t_total, dist_total / 6076, Wfuel, hp_tr, hpf, Acc, AccTASAvg, AccTime, AccDist / 6076, AccFuel, AccWfi
 
-    def cruise(self, hp, dISA, Vwind, V, V_type, W, OEI_tag=False):
+    def cruise(self, hp, dISA, Vwind, V, V_type, W_cri, dW_fuel_cruise, OEI_tag=False):
         """
         Paramêtre de cruise.
 
@@ -910,127 +907,119 @@ class Aircraft():
         :return Wf: Debit massique total de carburant (lb/hr)
         """
         P, rho, T = get_atmos_from_dISA(hp, dISA)
-
+        W_avg = W_cri - dW_fuel_cruise/2
         if V_type == "Vmd":
-            V_md = self.get_minimum_drag_speed(W, rho)
+            V_md = self.get_minimum_drag_speed(W_avg, rho)
             V = V_md
-            Mach = get_mach(v=V_md,temp=T)
+            Mach = get_mach(v=V_md, temp=T)
         elif V_type == "Mach":
             Mach = V
-            V = get_true_airspeed(p=P,mach=Mach,temp=T)
+            V = get_true_airspeed(p=P, mach=Mach, temp=T)
         elif V_type == "MRC":
-            V_MRC = self.get_max_range_cruise_speed(W, rho)
+            V_MRC = self.get_max_range_cruise_speed(W_avg, rho)
             V = V_MRC
             Mach = get_mach(v=V_MRC, temp=T)
         elif V_type == "LRC":
-            Mach = self.get_long_range_cruise_mach(W, T, rho, P, hp)
-            V = get_true_airspeed(p=P,mach=Mach,temp=T)
+            Mach = self.get_long_range_cruise_mach(W_avg, T, rho, P, hp)
+            V = get_true_airspeed(p=P, mach=Mach, temp=T)
 
 
-        q = get_dynamic_pressure(P,T=T,mach=Mach)
+        q = get_dynamic_pressure(P, T=T, mach=Mach)
 
-        L = W
-        CL = self.get_lift_coefficient(Nz=1, weight=W,q=q,S_ref=self.S)
-        CD = self.get_drag_coefficient(CL=CL, flap_angle=0,mach=Mach)['CDtot']
-        D = CD*q*self.S
+        L = W_avg
+        CL = self.get_lift_coefficient(Nz=1, weight=W_avg, q=q, S_ref=self.S)
+        CD = self.get_drag_coefficient(CL=CL, flap_angle=0, mach=Mach)['CDtot']
+        D = CD * q * self.S
         thrust = D
         Wf = self.get_fuel_burn_rate(hp, thrust)
         SFC = self.get_SFC(hp)
 
-        SAR = ((a0*np.sqrt(T/T_0))/SFC)*(Mach*L/D)*(1/W)
+        SAR = ((a0 * np.sqrt(T / T_0)) / SFC) * (Mach * L / D) * (1 / W_avg)
         V_g = V + Vwind
-        SR = SAR*(V_g/V)
+        SR = SAR * (V_g / V)
 
-        KCAS = get_calibrated_airspeed(p=P,mach=Mach)
-
-        #Perform checks
-        #if thrust > self.get_thrust('MCR', PALT=hp, M=Mach, T=T, n_engines=None):
+        KCAS = get_calibrated_airspeed(p=P, mach=Mach)
+        # Perform checks
+        # if thrust > self.get_thrust('MCR', PALT=hp, M=Mach, T=T, n_engines=None):
         #    raise Exception('Thrust d/passe MCR')
-        #elif get_ROC(V=275, T=T, D=D, W=W, AF=get_AF("CAS", hp, 0.74, T, T-dISA)) < 300:
+        # elif get_ROC(V=275, T=T, D=D, W=W, AF=get_AF("CAS", hp, 0.74, T, T-dISA)) < 300:
         #    raise Exception('Roc sous 300 ft/min')
-        #elif KCAS > self.V_MO or Mach > self.M_MO:
+        # elif KCAS > self.V_MO or Mach > self.M_MO:
         #    raise Exception('Vitesse max depasse')
-        #elif V < self.get_minimum_drag_speed(W, rho):
-         #   raise Exception('En dessous de vitesse min drag')
-        #elif hp > 41000 or hp <2000:
+        # elif V < self.get_minimum_drag_speed(W, rho):
+        #   raise Exception('En dessous de vitesse min drag')
+        # elif hp > 41000 or hp <2000:
         #    raise Exception('Altitude hors des bornes de 2000 a 41000 pi')
-        #elif OEI_tag == True:
+        # elif OEI_tag == True:
         #    raise Exception('AEO seulement')
 
         return KCAS, V_g, Mach, SAR, SR, Wf
 
+    def mission(self, dW_cargo, hpi, hpf, RM_cl, V_CAS_cst, Mach_cst, hp_cruise, RM_d, dISA, Vwind, Wi_fuel=15000,
+                dW_fuel_to_taxi=200, dW_fuel_to=250, dW_fuel_ldg=200, dW_fuel_ldg_taxi=100, W_fuel_reserve=2000):
+        '''
 
-    def mission(self, hpi, hpf, hp_cruise, dISA, Vwind, V_CAS_cst, Mach_cruise, RM):
-        #Taxi
-        Wfuel_taxi = 500
-        TOW = self.MRW-Wfuel_taxi
+        :param Wi_cargo:
+        :param hpi:
+        :param hpf:
+        :param RM_cl:
+        :param V_CAS_cst:
+        :param Mach_cst:
+        :param hp_cruise:
+        :param dISA:
+        :param Vwind:
+        :param Wi_fuel:
+        :param dW_fuel_to_taxi:
+        :param dW_fuel_to:
+        :param dW_fuel_ldg:
+        :param dW_fuel_ldg_taxi:
+        :param W_fuel_reserve:
+        :return:
+        '''
 
-        #Takeoff
-        Wfuel_TO = 500
-        W_ETO = TOW-Wfuel_TO
-        hpETO = hpi+1500
+        ZFW = self.OWE + dW_cargo  # Zero Fuel Weight - constant unless passengers are lost (or found?) along the way
+        RW = ZFW + Wi_fuel  # Ramp weight - weight before taxi
 
-        #Climb
-        Climb = self.mission_performance_climb_descent(hpETO,hp_cruise,dISA,Vwind,V_CAS_cst,Mach_cruise,W_ETO,RM)
-        t_climb = Climb[0]
+        # Taxi
+        TOW = RW - dW_fuel_to_taxi  # Takeoff Weight (after taxi)
+
+        # Takeoff
+        W_cli = TOW - dW_fuel_to  # Initial climb weight (after initial climb to 1500ft)
+        hpi_cl = hpi + 1500  # Initial climb altitude
+
+        # Climb
+        Climb = self.mission_performance_climb_descent(hpi_cl, hp_cruise, dISA, Vwind, V_CAS_cst, Mach_cst, W_cli,
+                                                       RM_cl)
         dist_climb = Climb[1]
-        Wfuel_climb = Climb[2]
+        dW_fuel_climb = Climb[2]
+        hp_cruise = round(Climb[4]/1000)*1000
 
-        hpTOC = hp_cruise
-        W_TOC = W_ETO-Wfuel_climb
+        hpi_d = hp_cruise  # First estimate of initial descent altitude (same as cruise altitude)
+        hpf_d = hpf + 1500  # Altitude at final approach (end of descent)
 
-        #Descent
-        hpBAL = hpf+1500
-        Descent = self.mission_performance_climb_descent(hpTOC,hpBAL,dISA,Vwind,V_CAS_cst,Mach_cruise,W_TOC,RM)
-        Wfuel_descent = Descent[2]
-
-        #Landing
-        Wfuel_landing = 500
-        W_BAL = self.MLW+Wfuel_landing
-
-        #Cruise
-        W_TOD = W_BAL + Wfuel_descent
-        Wfuel_cruise_i = W_TOC - W_TOD
-        Cruise = self.cruise(hp_cruise,dISA,Vwind,Mach_cruise,'Mach',W_TOC)
-        Wfuel_rate_cruise = Cruise[5]
-        t_Cruise = Wfuel_cruise_i/Wfuel_rate_cruise
-
-        W = W_TOC
-        pas_t = 1
-
-        while abs(W_BAL + Wfuel_landing - self.MLW)>50:
-            #Cruise avec nouvel estimé
-            W = W_TOC
-            Wfuel_cruise = 0
-            for i in range(0,t_Cruise,pas_t):
-                Cruise = self.cruise(hp_cruise, dISA, Vwind, Mach_cruise, 'Mach', W)
-                Wfuel_rate = Cruise[5]
-                Wfuel = Wfuel_rate*pas_t
-                W = W_TOC-Wfuel
-                Wfuel_cruise = Wfuel_cruise+Wfuel
-
-            W_TOD = W_TOC-Wfuel_cruise
-
+        W_cri = W_cli - dW_fuel_climb  # Initial cruise weight
+        W_di = 0  # Declare Variable
+        W_crf = W_cri  # First estimate of initial descent altitude (same as cruise altitude)
+        dW_fuel_cruise = 0  # First estimate of initial descent Weight
+        while abs(W_di - W_crf) / W_crf > 1 / 10000:
             # Descent
-            hpBAL = hpf + 1500
-            Descent = self.mission_performance_climb_descent(hpTOC, hpBAL, dISA, Vwind, V_CAS_cst, Mach_cruise, W_TOC,                                              RM)
-            Wfuel_descent = Descent[2]
-
-            # Landing
-            Wfuel_landing = 500
-            W_BAL = self.MLW + Wfuel_landing
+            W_di = W_cri - dW_fuel_cruise  # Estimate of initial descent Weight
+            Descent = self.mission_performance_climb_descent(hpi_d, hpf_d, dISA, Vwind, V_CAS_cst, Mach_cst, W_di, RM_d)
+            dist_descent = Descent[1]
+            dW_fuel_descent = Descent[2]
 
             # Cruise
-            W_TOD = W_BAL + Wfuel_descent
-            Wfuel_cruise_i = W_TOC - W_TOD
-            Cruise = self.cruise(hp_cruise, dISA, Vwind, Mach_cruise, 'Mach', W_TOC)
-            Wfuel_rate_cruise = Cruise[5]
-            t_Cruise = Wfuel_cruise_i / Wfuel_rate_cruise
+            W_crf = W_fuel_reserve + dW_fuel_ldg_taxi + dW_fuel_ldg + dW_fuel_descent + ZFW  # Estimate of Weight after cruise
+            dW_fuel_cruise = W_cri - W_crf
+            Cruise = self.cruise(hp_cruise, dISA, Vwind, Mach_cst, 'Mach', W_cri, dW_fuel_cruise)
 
-        t_climb = Climb[0]
-        dist_climb = Climb[1]
-        Wfuel_climb = Climb[2]
+            dist_cruise = Cruise[3] * dW_fuel_cruise
 
-        t_climb = Descent[0]
-        dist_climb = Climb[1]
-        Wfuel_climb = Climb[2]
+            # hpi_d = get_pressure_altitude(P_0*W_crf/(W_cri/pressure_from_alt(hp_cruise, ratio=True)))
+            # if hpi_d > 41000:
+            #     hpi_d = 41000
+
+        dist_tot = Climb[1] + Descent[1] + dist_cruise
+        dWf_tot = RW - (W_crf - dW_fuel_descent - dW_fuel_ldg - dW_fuel_ldg_taxi)
+
+        return dist_climb, hp_cruise, dist_cruise, dist_descent, dist_tot, dWf_tot

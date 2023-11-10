@@ -130,17 +130,17 @@ if __name__ == '__main__':
         int_hp_resol = 10  # The altitude résolution used during integration [ft]
 
         t_total, dist_total, dW, hp_tr, Acc, AccTASAvg, AccTime, AccDist, AccFuel, AccWfi = aircraft.mission_performance_climb_descent(
-            hpi, hpf, dISA, Vwind, V_CAS_cst, Mach_cst, Wi, RM, int_hp_resol=int_hp_resol, OEI_tag=OEI_tag)
+            hpi, hpf, dISA, Vwind, V_CAS_cst, Mach_cst, Wi, RM, int_hp_resol=int_hp_resol, OEI_tag=OEI_tag, ROC_min = 100)
 
         results[id] = {}
         results[id]['Time'] = t_total
-        results[id]['Distance'] = dist_total / 6076
+        results[id]['Distance'] = dist_total
         results[id]['Fuel Burned'] = dW
         results[id]['Hp_tr'] = hp_tr
         results[id]['Acc'] = Acc
         results[id]['AccTASAvg'] = AccTASAvg
         results[id]['AccTime'] = AccTime
-        results[id]['AccDist'] = AccDist/ 6076
+        results[id]['AccDist'] = AccDist
         results[id]['AccFuel'] = AccFuel
         results[id]['AccWfi'] = AccWfi
 
