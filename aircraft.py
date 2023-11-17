@@ -196,6 +196,54 @@ class Aircraft():
 
         return np.interp(mach, x_pts, y_pts)
 
+    def speed_spread_vs_climb_gradient(self, climb_gradient_35, type ):
+        """
+
+        :param climb_gradient_35: The expected climb gradient at 35 ft after TO
+        :param type: Indicates which speed spread is of interest (1 or 2 or 3)
+            1: Speed spread from rotation to lift - off(normal rotation)(ft / s)
+            2: Speed spread from lift-off to 35 ft(ft / s)
+            3: Speed spread from lift-off to 15 ft(ft / s)
+
+        :return: Speed spread
+        """
+
+        # self.twdv = #(Climb gradient at 35 ft – θ)(based on V2, gear up and AF = 0)
+        # self.dvrvl = #Speed spread from rotation to lift - off(normal rotation)(ft / s)
+        # self.dvlo35 = #Speed spread from lift-off to 35 ft(ft / s)
+        # self.dvlo15 = #Speed spread from lift-off to 15 ft(ft / s)
+
+        if type == 1:
+            return np.interp(climb_gradient_35, self.twdv, self.dvrvl)
+        elif type == 2:
+            return np.interp(climb_gradient_35, self.twdv, self.dvlo35)
+        elif type == 3:
+            return np.interp(climb_gradient_35, self.twdv, self.dvlo15)
+
+    def time_spread_vs_climb_gradient(self, climb_gradient_35, type):
+        """
+
+        :param climb_gradient_35: The expected climb gradient at 35 ft after TO
+        :param type: Indicates which speed spread is of interest (1 or 2 or 3)
+            1: Time between Vr and Vlo
+            2: Time between Vlo and 35 ft
+            3: Time between Vlo and 15 ft
+
+        :return: Speed spread
+        """
+
+        # self.twdt = #(Climb gradient at 35 ft – θ)(based on V2, gear up and AF = 0)
+        # self.dtvrvl = #Time between Vr and Vlo
+        # self.dtvlo35 = #Time between Vlo and 35 ft
+        # self.dtvlo15 = #Time between Vlo and 15 ft
+
+        if type == 1:
+            return np.interp(climb_gradient_35, self.twdt, self.dtvrvl)
+        elif type == 2:
+            return np.interp(climb_gradient_35, self.twdt, self.dtvlo35)
+        elif type == 3:
+            return np.interp(climb_gradient_35, self.twdt, self.dtvlo15)
+
     def NZ_buffet(self, mach, CL, cg):
         """
         Load factor at buffet start. CL buffet is given for CG at 9% MAC, needs to be adjusted!
@@ -563,6 +611,25 @@ class Aircraft():
                 'CDtot': CDtotal}
 
         return drag
+
+    def get_drag_force(self, P, T, Weight, flap_angle, mach, Sref=None, **kwargs):
+        if 'Nz' in kwargs:
+            Nz = kwargs['Nz']
+        elif 'phi' in kwargs:
+            Nz = 1 / np.cos(np.radians(kwargs['phi']))
+        else:
+            Nz = 1
+
+        if Sref is None:
+            Sref = self.S
+
+        q = get_dynamic_pressure(P, T, mach=mach)
+        kwargs['q'] = q
+        CL = self.get_lift_coefficient(Nz=Nz, weight=Weight, q=q, S_ref=Sref)
+        CD = self.get_drag_coefficient(CL, flap_angle, mach, **kwargs)['CDtot']
+        Drag = q * CD * self.S
+
+        return Drag
 
     def get_minimum_drag_speed(self, W, rho):
         """
@@ -1018,3 +1085,80 @@ class Aircraft():
         dWf_tot = RW - (W_crf - dW_fuel_descent - dW_fuel_ldg - dW_fuel_ldg_taxi)
 
         return dist_climb, hp_cruise, dist_cruise, dist_descent, dist_tot, dWf_tot
+
+
+    def takeoff_run_velocities(self, W, Hp, dISA, theta=0, OEI_tag=False):
+        """
+        Calcul des vitesses pertinentes lors du décollage.
+
+        :param W: Poids de l'avion [lbs]
+        :param Hp: altitude pression [ft]
+        :param dISA: déviation ISA [²C ou K]
+
+        :return: V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO
+        """
+        # Hypotheses
+        flap_angle = 20
+        RM = 'MTO'
+
+        # Conditions Atmospheriques
+        P = pressure_from_alt(Hp)
+        T = temp_from_alt(Hp) + dISA
+        delta = P / P_0
+
+        # V_SR
+        CL = self.get_CL_max(flap_angle, gear_up=True) / 1 ** 2
+        mach_Vsr = np.sqrt((W * 1 / delta) / 1481.3 / CL / self.S)
+        V_SR = get_calibrated_airspeed(P,mach_Vsr)
+
+        # Autres Vitesses
+        V1_MCG = self.V_1mcg # CAS
+        V_MCA = self.V_mca # CAS
+
+        # V1, VR et V2 Minimums
+        V1Min = knots2fps(CAS2TAS(Hp,dISA, V1_MCG))
+        VRMin = knots2fps(CAS2TAS(Hp,dISA, max(V1_MCG, 1.05*V_MCA)))
+        V2Min = knots2fps(CAS2TAS(Hp,dISA, max(1.13*V_SR,1.1*V_MCA)))
+
+        # Vitesses OEI et VR
+        n_engines = 1
+        OEI_tag = True
+        V2 = V2Min
+        Mach = V2/get_SOS(T,knots=False)
+        q = get_dynamic_pressure(P, T, mach=Mach)
+        Thrust = self.get_thrust(RM, Hp, Mach, T, n_engines=n_engines)
+        Drag = self.get_drag_force(P, T, W, flap_angle, Mach, LDG=0, NZ=1, thrust=Thrust, OEI=OEI_tag)
+        grad35ft = (Thrust-Drag)/W-theta
+        if grad35ft < 2.4/100:
+            print('WARNING! Climb gradient at 35ft is less than 2.4%. Calculations aborted.')
+            return None, None, None, None, None, None, None
+        dV_LO_35_OEI = self.speed_spread_vs_climb_gradient(grad35ft, 2)
+        V_LO_OEI = V2 - dV_LO_35_OEI
+        dV_ROT_LO_OEI = self.speed_spread_vs_climb_gradient(grad35ft, 1)
+        VR = V_LO_OEI - dV_ROT_LO_OEI
+
+        # Correction VR, V2 et V_LO_OEI si VR < VRmin
+        if VR < VRMin:
+            VR = VRMin
+            V_LO_OEI = VR + dV_ROT_LO_OEI
+            V2 = V_LO_OEI + dV_LO_35_OEI
+
+        # Vitesses AEO
+        n_engines = 2
+        OEI_tag = False
+        Mach = V2 / get_SOS(T, knots=False)
+        q = get_dynamic_pressure(P, T, mach=Mach)
+        Thrust = self.get_thrust(RM, Hp, Mach, T, n_engines=n_engines)
+        Drag = self.get_drag_force(P, T, W, flap_angle, Mach, LDG=0, NZ=1, thrust=Thrust, OEI=OEI_tag)
+        grad35ft = (Thrust - Drag) / W - theta
+        dV_ROT_LO_AEO = self.speed_spread_vs_climb_gradient(grad35ft, 1)
+        V_LO_AEO = VR + dV_ROT_LO_AEO
+        dV_LO_35_AEO = self.speed_spread_vs_climb_gradient(grad35ft, 2)
+        V_35_AEO = V_LO_AEO + dV_LO_35_AEO
+
+        # V1_Max
+        V1Max = VR
+
+        return V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO
+
+

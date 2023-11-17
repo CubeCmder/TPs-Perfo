@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     #sol = openpyxl.load_workbook(r'C:\Users\hugoa\OneDrive - polymtl.ca\Ecole\A2023\AER8375\TPs-Perfo\solutions\AER8375_TP4A_sol.xlsx')['Sheet1']
     sol = openpyxl.load_workbook(
-        r'C:\Users\Dolar\OneDrive - polymtl.ca\Poly & School\POLY\2023 Automne\Performance\TPs\solutions\AER8375_TP4A_sol.xlsx')['Sheet1']
+        r'C:\Users\Admin\OneDrive - polymtl.ca\Poly & School\POLY\2023 Automne\Performance\TPs\solutions\AER8375_TP4A_sol.xlsx')['Sheet1']
     cases = {}
 
     for row in sol.iter_rows(min_row=16, max_row=18, min_col=1, max_col=4, values_only=True):
@@ -69,22 +69,29 @@ if __name__ == '__main__':
         hp = case['hp']
         T = case['T']
         weight = case['weight']
+        RM = 'MTOFN'
+        Flaps = 20
+        Vwind=0
+        grad_RW=0
+
 
         p = pressure_from_alt(hp)
-
+        dISA = get_delta_ISA(hp,T)
         # OUTPUTS
 
+        V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO = aircraft.takeoff_run_velocities(weight, hp, dISA)
 
-        results[id] = {}
+        headers = ['V1Min', 'V1Max', 'VR', 'V2', 'V_LO_OEI', 'V_LO_AEO', 'V_35_AEO']
+        results[id] = {'V1Min':V1Min, 'V1Max':V1Max, 'VR':VR, 'V2':V2, 'V_LO_OEI':V_LO_OEI, 'V_LO_AEO':V_LO_AEO, 'V_35_AEO':V_35_AEO}
 
 
 
     # headers = ['Cas', 'Cd', 'Cl', 'L/D', 'Cdp', 'Cdi', 'Cdcomp', 'Cdcntl', 'Cdwm', 'Pousée Totale', 'Trainée', 'AOA', 'Nz_sw', 'Phi_sw', 'Nz_buffet']
     #
-    # print(tabulate([[name, *inner.values()] for name, inner in results.items()],
-    #                headers = headers,
-    #                tablefmt="github",
-    #                floatfmt=(".0f",".6f", ".5f", ".5f", ".5f", ".5f", ".5f", ".5f", ".5f", ".1f", ".4f")))
+    print(tabulate([[name, *inner.values()] for name, inner in results.items()],
+                    headers = headers,
+                    tablefmt="github",
+                    floatfmt=(".1f",".1f", ".1f", ".1f", ".1f", ".1f", ".1f", ".1f")))
 
 
 

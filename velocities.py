@@ -273,4 +273,17 @@ def get_lift_coefficient(p,V,W,T,S=520,N_z = 1):
 
     return L/(q*S)
 
+def CAS2TAS(Hp, dISA,CAS):
+    """
 
+    :param p:
+    :param dISA:
+    :param CAS:
+    :return:
+    """
+    p = pressure_from_alt(Hp)
+    temp = temp_from_alt(Hp)+dISA
+    mach = get_mach_from_calibrated_airspeed(p,CAS)
+    TAS = get_true_airspeed(p,mach,temp=temp)
+
+    return TAS
