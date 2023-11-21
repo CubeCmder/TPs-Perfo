@@ -156,6 +156,7 @@ class Aircraft():
         self.bv = -0.0043
         self.cv = -0.0027
 
+
     #  ===============================================================================
     def _induced_drag_efficiency_factor(self, flap_angle):
         """
@@ -1137,6 +1138,14 @@ class Aircraft():
         dV_ROT_LO_OEI = self.speed_spread_vs_climb_gradient(grad35ft, 1)
         VR = V_LO_OEI - dV_ROT_LO_OEI
 
+        #Time OEI
+        dt_VLO_VR_OEI = self.time_spread_vs_climb_gradient(grad35ft, 1)
+        dt_V35_VLO_OEI = self.time_spread_vs_climb_gradient(grad35ft, 2)
+        # Dist AEO
+        D_VLO_VR_OEI = (VR + dV_ROT_LO_OEI / 2) * dt_VLO_VR_OEI
+        D_V35_VLO_OEI = (V_LO_OEI + dV_LO_35_OEI / 2) * dt_V35_VLO_OEI
+
+
         # Correction VR, V2 et V_LO_OEI si VR < VRmin
         if VR < VRMin:
             VR = VRMin
@@ -1156,9 +1165,18 @@ class Aircraft():
         dV_LO_35_AEO = self.speed_spread_vs_climb_gradient(grad35ft, 2)
         V_35_AEO = V_LO_AEO + dV_LO_35_AEO
 
+        # Time AEO
+        dt_VLO_VR_AEO = self.time_spread_vs_climb_gradient(grad35ft, 1)
+        dt_V35_VLO_AEO = self.time_spread_vs_climb_gradient(grad35ft, 2)
+
+        # Dist AEO
+        D_VLO_VR_AEO = (VR + V_LO_AEO) * dt_VLO_VR_AEO/2
+        D_V35_VLO_AEO = (V_LO_AEO + V_35_AEO) * dt_V35_VLO_AEO/2
+
         # V1_Max
         V1Max = VR
 
-        return V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO
+
+        return V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO, dt_VLO_VR_OEI, dt_V35_VLO_OEI, dt_VLO_VR_AEO, dt_V35_VLO_AEO, D_VLO_VR_OEI, D_V35_VLO_OEI, D_VLO_VR_AEO, D_V35_VLO_AEO
 
 
