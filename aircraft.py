@@ -124,7 +124,7 @@ class Aircraft():
         self.kemax = 16.7  # max demonstrated brake energy per brake (million ft-lb)
         self.fuse_plug_limit = 11.5  # fuse plug limit brake energy per brake (million ft-lb)
         self.mu_dry = 0.400  # Airplane braking coefficient on dry runway
-        self.rollmu = 0.200  # Rolling coefficient of friction
+        self.rollmu = 0.0200  # Rolling coefficient of friction
         self.mu_wet = 0.225  # Brake mu on wet runways
         self.mu_snow = 0.200  # Brake mu on compacted snow covered runway
         self.mu_ice = 0.050  # Brake mu on ice covered runway
@@ -155,6 +155,7 @@ class Aircraft():
         self.av = 1.1097
         self.bv = -0.0043
         self.cv = -0.0027
+
 
 
     #  ===============================================================================
@@ -477,6 +478,39 @@ class Aircraft():
         else:
             return self.get_phi(NZ_sw)
 
+    def get_ground_coefficients(self, flaps, spoilers=False):
+        """
+        LIFT AND DRAG COEFFICIENTS IN TAXI ATTITUDE (WITH LANDING GEAR DOWN, IN GROUND EFFECT, VALID FOR ALL CG LOCATIONS)
+        :param flaps:
+        :param spoilers:
+        :return:
+        """
+        if flaps == 0:
+            if spoilers:
+                CL = -0.0870
+                CD = 0.0905
+            else:
+                CL = 0.2630
+                CD = 0.0413
+        elif flaps == 20:
+            if spoilers:
+                CL = 0.2090
+                CD = 0.1171
+            else:
+                CL = 0.8290
+                CD = 0.0750
+        elif flaps == 40:
+            if spoilers:
+                CL = 0.4110
+                CD = 0.1753
+            else:
+                CL = 1.361
+                CD = 0.1593
+        else:
+            CL = None
+            CD = None
+
+        return CL, CD
     def get_lift_coefficient(self, **kwargs):
         """
 
@@ -525,6 +559,30 @@ class Aircraft():
         #    CL = CL#*(1+self.mac/self.lt *(self.FWDCG-kwargs['cg']))
 
         return CL
+
+    def get_lift_force(self, P, T, Weight, mach, **kwargs):
+        # if 'Nz' in kwargs:
+        #     Nz = kwargs['Nz']
+        # elif 'phi' in kwargs:
+        #     Nz = 1 / np.cos(np.radians(kwargs['phi']))
+        # else:
+        #     Nz = 1
+
+        if 'S_ref' in kwargs:
+            Sref = kwargs['S_ref']
+        else:
+            Sref = self.S
+
+        if 'q' in kwargs:
+            q = kwargs['q']
+        else:
+            q = get_dynamic_pressure(P, T, mach=mach)
+            kwargs['q'] = q
+
+        CL = self.get_lift_coefficient(**kwargs)
+        Lift = q * CL * Sref
+
+        return Lift
 
     def get_CL_max(self, flap_angle, gear_up):
 
@@ -1131,8 +1189,8 @@ class Aircraft():
         Drag = self.get_drag_force(P, T, W, flap_angle, Mach, LDG=0, NZ=1, thrust=Thrust, OEI=OEI_tag)
         grad35ft = (Thrust-Drag)/W-theta
         if grad35ft < 2.4/100:
-            print('WARNING! Climb gradient at 35ft is less than 2.4%. Calculations aborted.')
-            return None, None, None, None, None, None, None
+            print('WARNING! Climb gradient at 35ft is less than 2.4%. Calculations aborted.\n')
+            return None
         dV_LO_35_OEI = self.speed_spread_vs_climb_gradient(grad35ft, 2)
         V_LO_OEI = V2 - dV_LO_35_OEI
         dV_ROT_LO_OEI = self.speed_spread_vs_climb_gradient(grad35ft, 1)
@@ -1170,7 +1228,7 @@ class Aircraft():
         dt_V35_VLO_AEO = self.time_spread_vs_climb_gradient(grad35ft, 2)
 
         # Dist AEO
-        D_VLO_VR_AEO = (VR + V_LO_AEO) * dt_VLO_VR_AEO/2
+        D_VLO_VR_AEO = (VR + V_LO_AEO) / 2 * dt_VLO_VR_AEO
         D_V35_VLO_AEO = (V_LO_AEO + V_35_AEO) * dt_V35_VLO_AEO/2
 
         # V1_Max
@@ -1179,4 +1237,113 @@ class Aircraft():
 
         return V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO, dt_VLO_VR_OEI, dt_V35_VLO_OEI, dt_VLO_VR_AEO, dt_V35_VLO_AEO, D_VLO_VR_OEI, D_V35_VLO_OEI, D_VLO_VR_AEO, D_V35_VLO_AEO
 
+    def takeoff_run_distances(self, Hp, T, W, V1VR, V_wind, theta=0):
+        """
 
+        :return:
+            - FTOD_AEO: AEO Factored takeoff distance [ft]
+            - TOD_OEI: OEI Takeoff Distance [ft]
+            - ASD_AEO: AEO Acceleration-stop distance [ft]
+            - BFL(?): Balanced field length [ft]
+            - E_br: Braking energy [in millions of ft-lbs]
+        """
+        def segment(Vi, dVg, V_wind, OEI_tag, braking=False):
+            if braking:
+                RM = 'ID'
+                mu = self.mu_dry
+                spoilers = True
+            else:
+                RM = 'MTO'
+                mu = self.rollmu
+                spoilers = False
+
+            if OEI_tag:
+                n_engines = 1
+            else:
+                n_engines = 2
+
+            V_IA = Vi + V_wind  # V_wind is positive when wind is facing the aircraft
+            V_FA = V_IA + dVg
+            V_RMS = 2 ** .5 / 2 * (V_IA ** 2 + V_FA ** 2) ** 0.5
+            Mach = V_RMS / get_SOS(T, knots=False)
+            q = get_dynamic_pressure(P, T, mach=Mach)
+            Thrust = self.get_thrust(RM, Hp, Mach, T, n_engines=n_engines)
+            CL, CD = self.get_ground_coefficients(flap_angle, spoilers=spoilers)
+            Lift = q * self.S * CL
+            Drag = q * self.S * CD
+            a = g / W * (Thrust - Drag - mu * (W - Lift) - W * theta)
+            dt = dVg / a
+            ds = dt * (Vi+dVg/2)
+
+            if braking:
+                braking_energy = 0.4 * (W - q * self.S * CL) * ds / 1e6
+            else:
+                braking_energy = None
+
+            return ds, braking_energy
+
+        # Conditions Atmospheriques
+        P = pressure_from_alt(Hp)
+        dISA = get_delta_ISA(Hp, T)
+
+        # Hypotheses
+        flap_angle = 20
+        mu = self.rollmu
+
+        # Velocities
+        velocities = self.takeoff_run_velocities(W, Hp, dISA)
+        if velocities is None:
+            return [None]*5
+        else:
+            V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO = velocities [0:7]
+            dt_VLO_VR_OEI, dt_V35_VLO_OEI, dt_VLO_VR_AEO, dt_V35_VLO_AEO = velocities[7:11]
+            D_VLO_VR_OEI, D_V35_VLO_OEI, D_VLO_VR_AEO, D_V35_VLO_AEO = velocities[11:16]
+
+        V1 = V1VR * VR
+        if V1<V1Min:
+            print('WARNING! Given V1/VR value results in V1 value lower than V1mcg. Corrections applied.\n')
+            dVR_VLO_AEO = V_LO_AEO - VR
+            dVR_VLO_OEI = V_LO_OEI - VR
+            dVLO_V35 = V_35_AEO - V_LO_AEO
+
+            VR = V1Min/V1VR
+            V1 = V1Min
+
+            # Dist AEO
+            V_LO_AEO = VR + dVR_VLO_AEO
+            V_LO_OEI = VR + dVR_VLO_OEI
+            V_35 = V_LO_AEO + dVLO_V35
+            D_VLO_VR_AEO = (VR + V_LO_AEO) / 2 * dt_VLO_VR_AEO
+            D_V35_VLO_AEO = (V_LO_AEO + V_35) / 2 * dt_V35_VLO_AEO
+            D_VLO_VR_OEI = (VR + V_LO_OEI) / 2 * dt_VLO_VR_OEI
+            D_V35_VLO_OEI = (V_LO_OEI + V_35) / 2 * dt_V35_VLO_OEI
+
+        if V_wind < 0:
+            V_wind *= 1.5
+        else:
+            V_wind *= 0.5
+
+        # CALCULATE FTOD_AEO - AEO Factored takeoff distance [ft]
+        OEI_tag = False
+        d_V0_V1_AEO, __ = segment(0, V1, V_wind,OEI_tag)
+        d_V1_VR_AEO, __ = segment(V1, VR-V1, V_wind, OEI_tag)
+        d_VR_VLO_AEO = D_VLO_VR_AEO
+        d_VL0_V35_AEO = D_V35_VLO_AEO
+        TOD_AEO = d_V0_V1_AEO+d_V1_VR_AEO+d_VR_VLO_AEO+d_VL0_V35_AEO
+        FTOD_AEO = 1.15 * TOD_AEO
+
+        # CALCULATE TOD_OEI - OEI Takeoff Distance [ft]
+        OEI_tag = True
+        d_V1_VR_OEI, __ = segment(V1, VR - V1, V_wind, OEI_tag)
+        d_VR_VLO_OEI = D_VLO_VR_OEI
+        d_VL0_V35_OEI = D_V35_VLO_OEI
+        TOD_OEI = d_V0_V1_AEO + d_V1_VR_OEI + d_VR_VLO_OEI + d_VL0_V35_OEI
+
+        # CALCULATE ASD_AEO - AEO Acceleration-stop distance [ft]
+        OEI_tag = False
+        d_V1_V0_AEO, braking_energy = segment(V1, -V1, V_wind, OEI_tag, braking=True)
+        ASD_AEO = d_V0_V1_AEO + d_V1_V0_AEO + 2*V1
+
+        Longueur_min = max(FTOD_AEO, TOD_OEI, ASD_AEO)
+
+        return FTOD_AEO, TOD_OEI, ASD_AEO, Longueur_min, braking_energy
