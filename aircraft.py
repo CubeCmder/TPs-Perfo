@@ -1302,6 +1302,7 @@ class Aircraft():
         V1 = V1VR * VR
         if V1<V1Min:
             print('WARNING! Given V1/VR value results in V1 value lower than V1mcg. Corrections applied.\n')
+            # Velocity increments
             dVR_VLO_AEO = V_LO_AEO - VR
             dVR_VLO_OEI = V_LO_OEI - VR
             dVLO_V35 = V_35_AEO - V_LO_AEO
@@ -1309,10 +1310,11 @@ class Aircraft():
             VR = V1Min/V1VR
             V1 = V1Min
 
-            # Dist AEO
+            # New velocities at LO and 35ft
             V_LO_AEO = VR + dVR_VLO_AEO
             V_LO_OEI = VR + dVR_VLO_OEI
             V_35 = V_LO_AEO + dVLO_V35
+            # Distances correction
             D_VLO_VR_AEO = (VR + V_LO_AEO) / 2 * dt_VLO_VR_AEO
             D_V35_VLO_AEO = (V_LO_AEO + V_35) / 2 * dt_V35_VLO_AEO
             D_VLO_VR_OEI = (VR + V_LO_OEI) / 2 * dt_VLO_VR_OEI
