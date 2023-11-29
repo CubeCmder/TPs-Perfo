@@ -36,17 +36,21 @@ if __name__ == '__main__':
         r'C:\Users\Admin\OneDrive - polymtl.ca\Poly & School\POLY\2023 Automne\Performance\TPs\solutions\AER8375_TP4B_sol.xlsx')['Sheet1']
     cases = {}
 
-    for row in sol.iter_rows(min_row=16, max_row=18, min_col=1, max_col=4, values_only=True):
+    for row in sol.iter_rows(min_row=16, max_row=18, min_col=1, max_col=5, values_only=True):
         case = {}
 
-        if isinstance(row[2], str):
-            hp = extract_float_from_string(row[2])[0] # pressure altitude
+        V1VR = float(row[1])
+
+        weight = float(row[2])
+
+        if isinstance(row[3], str):
+            hp = extract_float_from_string(row[3])[0] # pressure altitude
         else:
-            hp = float(row[2])
+            hp = float(row[3])
 
         p = pressure_from_alt(hp)
 
-        dISA = extract_float_from_string(row[3])
+        dISA = extract_float_from_string(row[4])
         if len(dISA):
             dISA = dISA[0]
         else:
@@ -54,8 +58,7 @@ if __name__ == '__main__':
 
         temp = temp_from_alt(hp) + dISA
 
-        weight = float(row[1])
-
+        case['V1VR'] = V1VR
         case['hp'] = hp
         case['T'] = temp
         case['weight'] = weight
@@ -66,32 +69,29 @@ if __name__ == '__main__':
     for id in cases:
         case = cases[id]
 
+        V1VR = case['V1VR']
         hp = case['hp']
         T = case['T']
         weight = case['weight']
         RM = 'MTOFN'
         Flaps = 20
-        Vwind=0
-        grad_RW=0
-
+        V_wind=0
+        theta=0
 
         p = pressure_from_alt(hp)
-        dISA = get_delta_ISA(hp,T)
+        dISA = get_delta_ISA(hp, T)
+
         # OUTPUTS
+        #V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO = aircraft.takeoff_run_velocities(weight, hp, dISA)
+        FTOD_AEO, TOD_OEI, ASD_AEO, Longueur_min, braking_energy = aircraft.takeoff_run_distances(hp, T, weight, V1VR, V_wind, theta=theta)
 
-        V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO = aircraft.takeoff_run_velocities(weight, hp, dISA)
+        headers = ['FTOD_AEO', 'TOD_OEI', 'ASD_AEO', 'BFL', 'E_br']
+        results[id] = {'FTOD_AEO': FTOD_AEO, 'TOD_OEI': TOD_OEI, 'ASD_AEO': ASD_AEO, 'BFL': Longueur_min, 'E_br': braking_energy}
 
-        headers = ['V1Min', 'V1Max', 'VR', 'V2', 'V_LO_OEI', 'V_LO_AEO', 'V_35_AEO']
-        results[id] = {'V1Min':V1Min, 'V1Max':V1Max, 'VR':VR, 'V2':V2, 'V_LO_OEI':V_LO_OEI, 'V_LO_AEO':V_LO_AEO, 'V_35_AEO':V_35_AEO}
-
-
-
-    # headers = ['Cas', 'Cd', 'Cl', 'L/D', 'Cdp', 'Cdi', 'Cdcomp', 'Cdcntl', 'Cdwm', 'Pousée Totale', 'Trainée', 'AOA', 'Nz_sw', 'Phi_sw', 'Nz_buffet']
-    #
     print(tabulate([[name, *inner.values()] for name, inner in results.items()],
                     headers = headers,
                     tablefmt="github",
-                    floatfmt=(".1f",".1f", ".1f", ".1f", ".1f", ".1f", ".1f", ".1f")))
+                    floatfmt=(".1f",".1f", ".1f", ".1f", ".1f")))
 
 
 

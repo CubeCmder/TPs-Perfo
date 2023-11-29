@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b3de42b6-4e30-46dc-935d-4a4423fd2776" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/TP 4.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AER8375_TP4A.pdf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AER8375_TP4A_sol.xls" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AER8375_TP4B.pdf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AER8375_TP4B_solution.xlsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Atmosphere.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Constantes.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Decollage.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Forces.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Longueur_Piste.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Resultats.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TP3C_2054608_2011509.docx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TP3_Q3.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TP4C_2054608_2011509.docx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/TP4_Q3.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Transformations.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Vitesses.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../../solutions/AER8375_TP4B_sol.xlsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../aircraft.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../aircraft.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../solutions/sol_TP4B.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../solutions/sol_TP4B.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2YXHo8paO5GmoVMFtyoddgi9x9X" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true"
+  }
+}]]></component>
+  <component name="RunManager" selected="Python.Resultats">
+    <configuration name="Longueur_Piste" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="TP 4" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Longueur_Piste.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Resultats" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="TP 4" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Resultats.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.Resultats" />
+        <item itemvalue="Python.Longueur_Piste" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b3de42b6-4e30-46dc-935d-4a4423fd2776" name="Changes" comment="" />
+      <created>1700665175365</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1700665175365</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Longueur_Piste.py</url>
+          <line>221</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
