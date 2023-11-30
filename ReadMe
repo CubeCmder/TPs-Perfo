@@ -6,6 +6,9 @@ For TP1C, run program TP1C_Hugo or TP1C_Ced. This program imports and utilise at
 For TP3C, run program TP3C (present in the TP3 folder). This program imports and utilise atmos.py, velocities.py, aircraft.py and
 climb_descent.py.
 
+For TP4C, run program TP4C (present in the TP4 folder). This program imports and utilise atmos.py, velocities.py, aircraft.py and
+climb_descent.py.
+
 atmos.py:
 Contains function that allows us to model the atmosphere and therefore obtain different parameters from
 a set of input that depends on the users need.
@@ -16,7 +19,7 @@ are based on users need.
 
 aircraft.py:
 Class, containing attributes of the aircraft given in données avion. This class also contains function to calculate
-coefficients, forces, NZ, etc. This class help us define the aircraft and the force applied to it. TP3 added functions to calculate a full mission for the aircraft.
+coefficients, forces, NZ, etc. This class help us define the aircraft and the force applied to it. TP3 added functions to calculate a full mission for the aircraft. TP4 added functions to calculate takeoff speed and takeoff distances.
 
 climb_descent.py :
 Contains function needed to define climb and descent parameters from a set of input that depends on the users need.
