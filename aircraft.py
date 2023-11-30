@@ -1237,7 +1237,7 @@ class Aircraft():
 
         return V1Min, V1Max, VR, V2, V_LO_OEI, V_LO_AEO, V_35_AEO, dt_VLO_VR_OEI, dt_V35_VLO_OEI, dt_VLO_VR_AEO, dt_V35_VLO_AEO, D_VLO_VR_OEI, D_V35_VLO_OEI, D_VLO_VR_AEO, D_V35_VLO_AEO
 
-    def takeoff_run_distances(self, Hp, T, W, V1VR, V_wind, theta=0):
+    def takeoff_run_distances(self, Hp, W, V1VR, V_wind,T=None,dISA = None, flap_angle=20, cg=20, theta=0):
         """
 
         :return:
@@ -1268,7 +1268,8 @@ class Aircraft():
             Mach = V_RMS / get_SOS(T, knots=False)
             q = get_dynamic_pressure(P, T, mach=Mach)
             Thrust = self.get_thrust(RM, Hp, Mach, T, n_engines=n_engines)
-            CL, CD = self.get_ground_coefficients(flap_angle, spoilers=spoilers)
+            CL_fwd, CD = self.get_ground_coefficients(flap_angle, spoilers=spoilers)
+            CL = CL_fwd / (1 + self.mac / self.lt * (self.FWDCG - cg))
             Lift = q * self.S * CL
             Drag = q * self.S * CD
             a = g / W * (Thrust - Drag - mu * (W - Lift) - W * theta)
@@ -1284,10 +1285,14 @@ class Aircraft():
 
         # Conditions Atmospheriques
         P = pressure_from_alt(Hp)
-        dISA = get_delta_ISA(Hp, T)
+        if dISA == None:
+            dISA = get_delta_ISA(Hp, T)
+        elif T==None:
+            P,Rho,T = get_atmos_from_dISA(Hp, dISA, ratio=False)
+        else:
+            print(f'Soit T ou dISA doivent etre fournis')
 
         # Hypotheses
-        flap_angle = 20
         mu = self.rollmu
 
         # Velocities
